@@ -81,7 +81,7 @@ public class PspiIndexGeneratorCLI {
 
     private static Options makeOptions() {
         final Options options = new Options();
-        options.addOption("help", false, "prints this message");
+        options.addOption(Option.builder("h").longOpt("help").desc("Prints this message").build());
         options.addOption(Option.builder("i").longOpt("input-dir").hasArg().argName("inputDir").desc("Location of input directory").build());
         options.addOption(Option.builder("o").longOpt("output-dir").hasArg().argName("outputDir").desc("Location of output directory").build());
         options.addOption(Option.builder("v").longOpt("verbose").desc("Enables verbose logging").build());

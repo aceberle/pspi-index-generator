@@ -26,5 +26,74 @@ Otherwise you can run the command with "-h" to view the usage menu, like this:
 And here is the expected output:
 
 ```
+usage: java -jar pspi-index-generator.jar [-c
+       <(top|center|bottom)-(left|middle|right)>] [-f] [-h] [-i
+       <inputDir>] [-o <outputDir>] [-q <0.0-1.0>] [-r <SMALL|LARGE>] [-s]
+       [-v]
+PSPI Index Generator
 
+Example:
+    java -jar pspi-index-generator.jar -i inputDir -o outputDir -r SMALL
+-c center-middle -q 0.9
+
+ -c,--crop-anchor <(top|center|bottom)-(left|middle|right)>   When -r is
+                                                              specified,
+                                                              this value
+                                                              is used to
+                                                              override the
+                                                              default crop
+                                                              anchor,
+                                                              which is:
+                                                              top-middle
+ -f,--force                                                   Force
+                                                              overwrite of
+                                                              existing
+                                                              output
+                                                              directory
+ -h,--help                                                    Prints this
+                                                              message
+ -i,--input-dir <inputDir>                                    Location of
+                                                              input
+                                                              directory
+ -o,--output-dir <outputDir>                                  Location of
+                                                              output
+                                                              directory
+ -q,--quality <0.0-1.0>                                       Compression
+                                                              quality
+                                                              level to use
+                                                              when images
+                                                              are
+                                                              manipulated
+                                                              (crop or
+                                                              resize).
+                                                              Values range
+                                                              is 0.0-1.0,
+                                                              where 0.0 is
+                                                              least
+                                                              quality and
+                                                              1.0 is
+                                                              highest
+                                                              quality.
+                                                              Default
+                                                              value is 0.7
+ -r,--resize-images <SMALL|LARGE>
+                                                              Automaticall
+                                                              y resizes
+                                                              images to
+                                                              standard
+                                                              PSPI size
+                                                              specificatio
+                                                              ns.
+                                                              Acceptable
+                                                              values are
+                                                              "SMALL" for
+                                                              320x400px or
+                                                              "LARGE" for
+                                                              640x800px.
+ -s,--strict                                                  Fails on
+                                                              unexpected
+                                                              files
+ -v,--verbose                                                 Enables
+                                                              verbose
+                                                              logging
 ```
