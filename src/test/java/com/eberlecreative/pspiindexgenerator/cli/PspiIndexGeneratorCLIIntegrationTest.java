@@ -30,6 +30,8 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private static final int NUM_IMAGES_PER_FOLDER = 10;
     
     private static final int NUM_FOLDERS = 3;
+
+    private static final File SOURCE_COPYRIGHT_FILE = new File("src/main/resources/COPYRIGHT.TXT");
     
     private TestDataGenerator testDataGenerator;
     
@@ -44,6 +46,8 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private List<String> commandArguments;
     
     private Exception thrownException;
+
+    private File actualCopyRightFile;
     
     @Before
     public void init() {
@@ -62,6 +66,15 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
+    }
+    
+    @Test
+    public void specifyThatActualCopyRightFileContentsMatchExpectedWhenMainIsExecutedAndHasLargeImage() {
+        givenDirectoryName("volume1");
+        givenLargeImage();
+        whenMainIsExecuted();
+        thenNoExceptionIsThrown();
+        thenActualCopyRightFileContentsMatchExpected();
     }
 
     @Test
@@ -195,6 +208,12 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         assertEquals(expectedContent, actualContent);
     }
 
+    private void thenActualCopyRightFileContentsMatchExpected() {
+        final String expectedContent = readString(SOURCE_COPYRIGHT_FILE.toPath());
+        final String actualContent = readString(actualCopyRightFile.toPath());
+        assertEquals(expectedContent, actualContent);
+    }
+
     private static String readString(Path path) {
         try {
             return Files.readString(path).replaceAll("\\r\\n|\\r|\\n", "\r\n");
@@ -223,7 +242,8 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         inputDirectory = new File(TEST_INPUT_DIR_ROOT, folderName);
         outputDirectory = new File(TEST_OUTPUT_DIR_ROOT, folderName);
         expectedInputFile = new File("src/test/directories/" + folderName + "_expected_input.txt");
-        actualInputFile = new File(outputDirectory + "/INDEX.TXT");
+        actualInputFile = new File(outputDirectory, "INDEX.TXT");
+        actualCopyRightFile = new File(outputDirectory, "COPYRIGHT.TXT");
         commandArguments.add("-i");
         commandArguments.add(inputDirectory.getAbsolutePath());
         commandArguments.add("-o");

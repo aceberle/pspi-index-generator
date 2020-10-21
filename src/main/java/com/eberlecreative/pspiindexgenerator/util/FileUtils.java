@@ -1,6 +1,9 @@
 package com.eberlecreative.pspiindexgenerator.util;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 
 public class FileUtils {
@@ -54,6 +57,16 @@ public class FileUtils {
     public void deleteFolder(File folder) {
         cleanDirectory(folder);
         folder.delete();
+    }
+
+    public void save(InputStream inputStream, File file) throws IOException {
+        final byte[] buffer = new byte[1024];
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            int bytesRead;
+            while((bytesRead = inputStream.read(buffer)) > -1) {
+                out.write(buffer, 0 , bytesRead);
+            }
+        }
     }
 
 }
