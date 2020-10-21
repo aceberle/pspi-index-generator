@@ -10,10 +10,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import com.arakelian.faker.model.Person;
+import com.arakelian.faker.service.RandomData;
+import com.arakelian.faker.service.RandomPerson;
+import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageSize;
 import com.eberlecreative.pspiindexgenerator.pspi.PspiImageSize;
 
 public class PspiIndexGeneratorCLIIntegrationTest {
@@ -21,6 +26,10 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private static final File TEST_INPUT_DIR_ROOT = new File("target/test-input-directories/");
     
     private static final File TEST_OUTPUT_DIR_ROOT = new File("target/test-output-directories/");
+    
+    private static final int NUM_IMAGES_PER_FOLDER = 10;
+    
+    private static final int NUM_FOLDERS = 3;
     
     private TestDataGenerator testDataGenerator;
     
@@ -89,6 +98,50 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
     }
+    
+    @Test
+    public void specifyThatActualIndexFileNumEntriesMatchExpectedWhenMainIsExecutedAndManyValidImagesExist() {
+        givenDirectoryName("volume5");
+        givenManyValidImages();
+        givenResizeEnabled(PspiImageSize.SMALL);
+        whenMainIsExecuted();
+        thenNoExceptionIsThrown();
+        thenActualIndexFileContainsNumRows(1 + (NUM_FOLDERS * NUM_IMAGES_PER_FOLDER));
+    }
+
+    private void givenManyValidImages() {
+        final List<Person> teachers = RandomPerson.get().listOf(NUM_FOLDERS);
+        final Random random = new Random();
+        final ImageSize[] imageSizes = new ImageSize[] {PspiImageSize.SMALL, PspiImageSize.LARGE, new DefaultImageSize(500, 700)};
+        for(Person teacher : teachers) {
+            final String grade = nextGrade();
+            final String homeRoomName = camel(teacher.getLastName());
+            System.out.println(String.format("Generating Teacher: %s Grade: %s", homeRoomName, grade));
+            final String folderName = String.format("%s_%s", grade, homeRoomName);
+            final List<Person> students = RandomPerson.get().listOf(NUM_IMAGES_PER_FOLDER);
+            for(Person student : students) {
+                final String firstName = camel(student.getFirstName());
+                final String lastName = camel(student.getLastName());
+                System.out.println(String.format("Generating Student: %s %s", firstName, lastName));
+                final String imageFileName = String.format("%s_%s.jpg", firstName, lastName);
+                final ImageSize imageSize = imageSizes[random.nextInt(imageSizes.length)];
+                testDataGenerator.addTestImage(folderName, imageFileName, imageSize);
+            }
+        }
+    }
+
+    private void thenActualIndexFileContainsNumRows(int expectedRows) {
+        assertEquals(expectedRows, readAllLines(actualInputFile.toPath()).size());
+    }
+
+    private String camel(String string) {
+        final int length = string.length();
+        return length > 0 ? length > 1 ? string.substring(0,1).toUpperCase().concat(string.substring(1).toLowerCase()) : string.substring(0,1) : string;
+    }
+
+    private String nextGrade() {
+        return RandomData.get().nextString("grade");
+    }
 
     private void thenNoExceptionIsThrown() {
         if(thrownException != null) {
@@ -145,6 +198,14 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private static String readString(Path path) {
         try {
             return Files.readString(path).replaceAll("\\r\\n|\\r|\\n", "\r\n");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static List<String> readAllLines(Path path) {
+        try {
+            return Files.readAllLines(path);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
