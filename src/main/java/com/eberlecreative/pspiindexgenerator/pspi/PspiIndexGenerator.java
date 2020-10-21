@@ -28,6 +28,7 @@ import com.eberlecreative.pspiindexgenerator.record.RecordWriterFactory;
 import com.eberlecreative.pspiindexgenerator.record.TabDelimitedRecordWriterFactory;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
+import com.eberlecreative.pspiindexgenerator.util.ResourceUtils;
 
 public class PspiIndexGenerator {
 
@@ -42,6 +43,8 @@ public class PspiIndexGenerator {
     private FileUtils fileUtils = FileUtils.getInstance();
     
     private ImageUtils imageUtils = ImageUtils.getInstance();
+    
+    private ResourceUtils resourceUtils = ResourceUtils.getInstance();
 
     private Logger logger = new DefaultLogger();
 
@@ -211,6 +214,8 @@ public class PspiIndexGenerator {
                     }
                 }
             }
+            logger.logInfo("Creating COPYRIGHT.TXT file...");
+            fileUtils.save(resourceUtils.getResourceAsStream("/COPYRIGHT.TXT"), new File(outputDirectory, "COPYRIGHT.TXT"));
             logger.logInfo("Generation completed!");
         }
     }
