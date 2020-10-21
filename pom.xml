@@ -178,4 +178,13 @@
       </plugin>
     </plugins>
   </build>
+  
+  <distributionManagement>
+   <repository>
+     <id>github</id>
+     <name>GitHub Aceberle Apache Maven Packages</name>
+     <url>https://maven.pkg.github.com/aceberle/pspi-index-generatorY</url>
+   </repository>
+  </distributionManagement>
+  
 </project>
