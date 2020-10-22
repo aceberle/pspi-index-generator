@@ -11,11 +11,19 @@ The machine that will run this software requires [Java version 11 or higher](htt
 
 ## Usage
 
+### Graphic User Interface (GUI)
+
 You can run the jar without any commands if you want to start up the Graphic user interface (GUI), like this:
 
 ```
 /path/to/java -jar pspi-index-generator-1.0.jar
 ```
+
+Here is what it looks like:
+
+<img alt="View of pspi-index-genarator GUI" src="docs/pspi-index-generator-gui.jpg" title="View of pspi-index-genarator GUI" width="40%" />
+
+### Command-Line Interface (CLI)
 
 Otherwise you can run the command with "-h" to view the usage menu, like this:
 
