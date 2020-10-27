@@ -1,5 +1,6 @@
 package com.eberlecreative.pspiindexgenerator.cli;
 
+import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +45,8 @@ public class TestDataGenerator {
     
     public void generateTestImages(File targetDir) throws IOException {
         final BufferedImage sourceImage = imageUtils.readImage(new File("src/test/resources/profile.jpg"));
+        final int origWidth = sourceImage.getWidth();
+        final int origHeight = sourceImage.getHeight();
         final Logger noOpLogger = new NoOpLogger();
         final ImageModifierFactory modifierFactory = new ImageModifierFactory(CropAnchors.parseCropAnchor("top-middle"));
         if(!targetDir.exists()) {
@@ -61,9 +64,23 @@ public class TestDataGenerator {
                 final File testImageFile = new File(testDirFile, testImageEntry.getKey());
                 System.out.println("Creating file at: " + testImageFile);
                 final ImageSize targetSize = testImageEntry.getValue();
-                modifierFactory.resizeImages(targetSize);
-                final ImageModifier modifier = modifierFactory.getImageModifier(noOpLogger);
-                final BufferedImage targetImage = modifier.modifyImage(testImageFile.toPath(), sourceImage);
+                final int targetWidth = targetSize.getWidth();
+                final int targetHeight = targetSize.getHeight();
+                BufferedImage targetImage;
+                if(targetWidth > origWidth || targetHeight > origHeight) {
+                    targetImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+                    final Graphics g = targetImage.getGraphics();
+                    for(int y = 0; y < targetHeight; y += origHeight) {
+                        for(int x = 0; x < targetWidth; x += origWidth) {
+                            g.drawImage(sourceImage, x, y, null);
+                        }
+                    }
+                    g.dispose();
+                } else {
+                    modifierFactory.resizeImages(targetSize);
+                    final ImageModifier modifier = modifierFactory.getImageModifier(noOpLogger);
+                    targetImage = modifier.modifyImage(testImageFile.toPath(), sourceImage);
+                }
                 ImageIO.write(targetImage, "jpg", testImageFile);
             }
         }

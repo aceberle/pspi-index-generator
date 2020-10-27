@@ -40,6 +40,8 @@ public class PspiIndexGenerator {
 
     public static final String DEFAULT_IMAGE_FOLDER_PATTERN = "(?<grade>[0-9pPkK]+)(?:_Grade)?(?:_(?<homeRoom>.*))?";
 
+    private static final long MAX_IMAGE_SIZE = (long)1E+7;
+
     private FileUtils fileUtils = FileUtils.getInstance();
     
     private ImageUtils imageUtils = ImageUtils.getInstance();
@@ -259,6 +261,10 @@ public class PspiIndexGenerator {
     }
 
     private String getImageSize(File imageFile, ErrorHandler errorHandler) throws IOException {
+        final long fileSize = imageFile.length();
+        if(fileSize > MAX_IMAGE_SIZE) {
+            errorHandler.handleError("Invalid image found! Expected size to be less than %s bytes but found size of %s bytes, image at: %s", MAX_IMAGE_SIZE, fileSize, imageFile);
+        }
         final BufferedImage bimg = imageUtils.readImage(imageFile);
         final int width = bimg.getWidth();
         final int height = bimg.getHeight();

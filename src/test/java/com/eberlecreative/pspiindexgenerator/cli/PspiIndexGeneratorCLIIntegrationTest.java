@@ -3,6 +3,7 @@ package com.eberlecreative.pspiindexgenerator.cli;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +24,10 @@ import com.eberlecreative.pspiindexgenerator.pspi.PspiImageSize;
 
 public class PspiIndexGeneratorCLIIntegrationTest {
     
+    private static final String TEST_IMAGE_FILENAME = "John_Doe.jpg";
+
+    private static final String TEST_IMAGE_FOLDER = "11_Smith";
+
     private static final File TEST_INPUT_DIR_ROOT = new File("target/test-input-directories/");
     
     private static final File TEST_OUTPUT_DIR_ROOT = new File("target/test-output-directories/");
@@ -121,6 +126,14 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thenNoExceptionIsThrown();
         thenActualIndexFileContainsNumRows(1 + (NUM_FOLDERS * NUM_IMAGES_PER_FOLDER));
     }
+    
+    @Test
+    public void specifyThatExceptionIsThrownWhenMainIsExecutedAndImageIsLargerThan10MB() {
+        givenDirectoryName("volume6");
+        givenImageLargerThan10MB();
+        whenMainIsExecuted();
+        thenExceptionIsThrown(RuntimeException.class, String.format("Invalid image found! Expected size to be less than 10000000 bytes but found size of %3$s bytes, image at: %2$s%1$s11_Smith%1$sJohn_Doe.jpg", File.separator, outputDirectory.getAbsolutePath(), getTestImageFileSize()));
+    }
 
     private void givenManyValidImages() {
         final List<Person> teachers = RandomPerson.get().listOf(NUM_FOLDERS);
@@ -141,6 +154,11 @@ public class PspiIndexGeneratorCLIIntegrationTest {
                 testDataGenerator.addTestImage(folderName, imageFileName, imageSize);
             }
         }
+    }
+
+    private void givenImageLargerThan10MB() {
+        final PspiImageSize imageSize = PspiImageSize.LARGE;
+        givenTestImageWithDimensions(imageSize.getWidth() * 15, imageSize.getHeight() * 15);
     }
 
     private void thenActualIndexFileContainsNumRows(int expectedRows) {
@@ -168,7 +186,17 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
 
     private void givenImageWithInvalidAspectRatio() {
-        givenTestImage("11_Smith", "John_Doe.jpg", 850, 1000);
+        givenTestImageWithDimensions(850, 1000);
+    }
+
+    private void givenTestImageWithDimensions(final int width, final int height) {
+        givenTestImage(TEST_IMAGE_FOLDER, TEST_IMAGE_FILENAME, width, height);
+    }
+
+    private long getTestImageFileSize() {
+        final File imageFile = new File(outputDirectory, String.format("%s/%s", TEST_IMAGE_FOLDER, TEST_IMAGE_FILENAME));
+        assertTrue(imageFile.isFile());
+        return imageFile.length();
     }
 
     private void givenSmallImage() {
@@ -180,7 +208,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
 
     private void givenImage(final PspiImageSize imageSize) {
-        givenTestImage("11_Smith", "John_Doe.jpg", imageSize);
+        givenTestImage(TEST_IMAGE_FOLDER, TEST_IMAGE_FILENAME, imageSize);
     }
 
     private void thenExceptionIsThrown(Class<? extends Throwable> expectedClass, String expectedMessage) {
