@@ -17,10 +17,10 @@ public class IndexRecordFieldsFactory {
         addField(IndexRecordFields.VOLUME_NAME, "Volume Name");
         addField(IndexRecordFields.IMAGE_FOLDER, "Image Folder");
         addField(IndexRecordFields.IMAGE_FILE_NAME, "Image File Name");
-        addField("grade", "Grade");
+        addField(IndexRecordFields.GRADE, "Grade");
         addField("lastName", "Last Name");
         addField("firstName", "First Name");
-        addField("homeRoom", "Home Room");
+        addField(IndexRecordFields.HOME_ROOM, "Home Room");
         addField("period", "Period");
         addField("teacherName", "Teacher Name");
         addField("track", "Track");

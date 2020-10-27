@@ -9,5 +9,9 @@ public class IndexRecordFields {
     public static final String IMAGE_FILE_NAME = "imageFileName";
 
     public static final String IMAGE_SIZE = "imageSize";
+    
+    public static final String GRADE = "grade";
+    
+    public static final String HOME_ROOM = "homeRoom";
 
 }
