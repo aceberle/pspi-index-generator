@@ -206,6 +206,7 @@ public class PspiIndexGenerator {
                                     indexRecord.put(fieldName, valueFromMatchers);
                                 }
                             }
+                            useAliasValueIfEmpty(indexRecord, IndexRecordFields.HOME_ROOM, IndexRecordFields.GRADE);
                             indexRecord.put(IndexRecordFields.VOLUME_NAME, volumeName);
                             indexRecord.put(IndexRecordFields.IMAGE_FOLDER, imageFolderName);
                             indexRecord.put(IndexRecordFields.IMAGE_FILE_NAME, imageFileName);
@@ -219,6 +220,12 @@ public class PspiIndexGenerator {
             logger.logInfo("Creating COPYRIGHT.TXT file...");
             fileUtils.save(resourceUtils.getResourceAsStream("/COPYRIGHT.TXT"), new File(outputDirectory, "COPYRIGHT.TXT"));
             logger.logInfo("Generation completed!");
+        }
+    }
+
+    private void useAliasValueIfEmpty(Map<String, String> indexRecord, String ifValueEmpty, String thenUseValue) {
+        if(indexRecord.get(ifValueEmpty) == null) {
+            indexRecord.put(ifValueEmpty, indexRecord.get(thenUseValue));
         }
     }
 

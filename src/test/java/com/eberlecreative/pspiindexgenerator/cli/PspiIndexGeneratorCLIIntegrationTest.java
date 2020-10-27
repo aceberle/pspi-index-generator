@@ -27,6 +27,8 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private static final String TEST_IMAGE_FILENAME = "John_Doe.jpg";
 
     private static final String TEST_IMAGE_FOLDER = "11_Smith";
+    
+    private static final String TEST_IMAGE_FOLDER_WITHOUT_HOMEROOM = "11_Grade";
 
     private static final File TEST_INPUT_DIR_ROOT = new File("target/test-input-directories/");
     
@@ -134,6 +136,14 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenExceptionIsThrown(RuntimeException.class, String.format("Invalid image found! Expected size to be less than 10000000 bytes but found size of %3$s bytes, image at: %2$s%1$s11_Smith%1$sJohn_Doe.jpg", File.separator, outputDirectory.getAbsolutePath(), getTestImageFileSize()));
     }
+    
+    @Test
+    public void specifyThatGradeIsUsedForHomeRoomWhenMainIsExecutedAndHomeRoomIsNotAvailable() {
+        givenDirectoryName("volume7");
+        givenLargeImageInFolderWithoutHomeRoom();
+        whenMainIsExecuted();
+        thenActualIndexFileContentsMatchExpected();
+    }
 
     private void givenManyValidImages() {
         final List<Person> teachers = RandomPerson.get().listOf(NUM_FOLDERS);
@@ -191,6 +201,10 @@ public class PspiIndexGeneratorCLIIntegrationTest {
 
     private void givenTestImageWithDimensions(final int width, final int height) {
         givenTestImage(TEST_IMAGE_FOLDER, TEST_IMAGE_FILENAME, width, height);
+    }
+
+    private void givenLargeImageInFolderWithoutHomeRoom() {
+        givenTestImage(TEST_IMAGE_FOLDER_WITHOUT_HOMEROOM, TEST_IMAGE_FILENAME, PspiImageSize.LARGE);
     }
 
     private long getTestImageFileSize() {
