@@ -16,7 +16,7 @@ on: [push]
 
 jobs:
   analyze:
-    name: Analyze
+    name: Build and Analyze
     runs-on: ubuntu-latest
 
     strategy:
