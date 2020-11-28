@@ -38,7 +38,7 @@ public class PspiIndexGenerator {
 
     public static final String DEFAULT_IMAGE_FILE_PATTERN = "(?<firstName>.*)_(?<lastName>.*)\\.jpg";
 
-    public static final String DEFAULT_IMAGE_FOLDER_PATTERN = "(?<grade>[0-9pPkK]+)(?:_Grade)?(?:_(?<homeRoom>.*))?";
+    public static final String DEFAULT_IMAGE_FOLDER_PATTERN = "(?<grade>[0-9a-zA-Z]+)(?:_Grade)?(?:_(?<homeRoom>.*))?";
 
     private static final long MAX_IMAGE_SIZE = (long)1E+7;
 
