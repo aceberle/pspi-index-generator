@@ -140,10 +140,10 @@ public class PspiIndexGeneratorGUI extends JFrame {
         JLabel resizeLabel = new JLabel("Resize Images:");
         getContentPane().add(resizeLabel, "cell 0 4,alignx right");
         
-        JRadioButton resizeToLargeImagesRadio = new JRadioButton(RESIZE_LARGE);
+        JRadioButton resizeToLargeImagesRadio = new JRadioButton(appendDimensions(RESIZE_LARGE, PspiImageSize.LARGE));
         getContentPane().add(resizeToLargeImagesRadio, "flowx,cell 1 4");
         
-        JRadioButton resizeToSmallImageRadio = new JRadioButton("Small");
+        JRadioButton resizeToSmallImageRadio = new JRadioButton(appendDimensions("Small", PspiImageSize.SMALL));
         getContentPane().add(resizeToSmallImageRadio, "cell 1 4");
         
         JRadioButton noResizeImageRadio = new JRadioButton(RESIZE_NO_RESIZE);
@@ -309,6 +309,10 @@ public class PspiIndexGeneratorGUI extends JFrame {
         resetPreferences(preferences);
         
         pack();
+    }
+
+    private String appendDimensions(String orig, PspiImageSize imageSize) {
+        return String.format("%s (%sx%s)", orig, imageSize.getWidth(), imageSize.getHeight());
     }
 
     private void clearPreferences(Preferences preferences) {
