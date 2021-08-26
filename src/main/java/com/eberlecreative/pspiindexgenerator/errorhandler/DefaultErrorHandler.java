@@ -19,11 +19,11 @@ public class DefaultErrorHandler implements ErrorHandler {
 
     @Override
     public void handleError(String message, Object...objects) {
+        logger.logError(message, objects);
         if(strict) {
             final String fullMessage = String.format(message, objects);
             throw new RuntimeException(fullMessage);
         }
-        logger.logError(message, objects);
     }
     
 }

@@ -6,13 +6,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVFormat.Builder;
+import org.apache.commons.csv.CSVRecord;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,6 +47,8 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     
     private TestDataGenerator testDataGenerator;
     
+    private TestWorkbookGenerator testWorkbookGenerator;
+    
     private File inputDirectory;
 
     private File outputDirectory;
@@ -55,10 +62,13 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private Exception thrownException;
 
     private File actualCopyRightFile;
+
+    private File dataFile;
     
     @Before
     public void init() {
         testDataGenerator = new TestDataGenerator();
+        testWorkbookGenerator = new TestWorkbookGenerator();
         inputDirectory = null;
         commandArguments = new ArrayList<>();
         commandArguments.add("-f");
@@ -73,6 +83,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
+        thenOutputIsValidPspiDirectory();
     }
     
     @Test
@@ -82,6 +93,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualCopyRightFileContentsMatchExpected();
+        thenOutputIsValidPspiDirectory();
     }
 
     @Test
@@ -90,6 +102,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         givenImageWithInvalidAspectRatio();
         whenMainIsExecuted();
         thenActualIndexFileContentsMatchExpected();
+        thenOutputIsValidPspiDirectory();
     }
 
     @Test
@@ -108,6 +121,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
+        thenOutputIsValidPspiDirectory();
     }
     
     @Test
@@ -117,6 +131,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
+        thenOutputIsValidPspiDirectory();
     }
     
     @Test
@@ -143,6 +158,33 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         givenLargeImageInFolderWithoutHomeRoom();
         whenMainIsExecuted();
         thenActualIndexFileContentsMatchExpected();
+        thenOutputIsValidPspiDirectory();
+    }
+    
+    @Test
+    public void specifyThatUsingInputFileWorks() {
+        givenDirectoryName("volume8");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenTestImage("002.jpg", PspiImageSize.SMALL);
+        givenTestImage("003.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
+        givenExcelFileRow("3", "", "", "100102", "3", "HR-5th-2: Reid", "", "Bynum Meredith");
+        whenMainIsExecuted();
+        thenNoExceptionIsThrown();
+        thenActualIndexFileContentsMatchExpected();
+        thenOutputIsValidPspiDirectory();
+    }
+
+    private void givenExcelFileRow(String...rowData) {
+        this.testWorkbookGenerator.addRow(rowData);
+    }
+
+    private void givenExcelFileWithColumnHeaders(String...headers) {
+        this.testWorkbookGenerator.setColumnHeaders(headers);
+        commandArguments.add("-d");
+        commandArguments.add(dataFile.getAbsolutePath());
     }
 
     private void givenManyValidImages() {
@@ -238,6 +280,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thrownException = null;
         try {
             testDataGenerator.generateTestImages(inputDirectory);
+            testWorkbookGenerator.generateWorkbook(dataFile);
             PspiIndexGeneratorCLI.main(commandArguments.toArray(new String[commandArguments.size()]));
         } catch(Exception e) {
             thrownException = e;
@@ -272,6 +315,10 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         }
     }
 
+    private void givenTestImage(String imageName, PspiImageSize imageSize) {
+        testDataGenerator.addTestImage(imageName, imageSize);
+    }
+
     private void givenTestImage(String folderName, String imageName, PspiImageSize imageSize) {
         testDataGenerator.addTestImage(folderName, imageName, imageSize);
     }
@@ -280,9 +327,24 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         testDataGenerator.addTestImage(folderName, imageName, width, height);
     }
 
+    private void thenOutputIsValidPspiDirectory() {
+        try (Reader in = new FileReader(actualInputFile)) {
+            final Iterable<CSVRecord> records = Builder.create(CSVFormat.TDF).setHeader().setSkipHeaderRecord(true).build().parse(in);
+            for(CSVRecord record : records) {
+                final String folder = record.get("Image Folder");
+                final String name = record.get("Image File Name");
+                final File expectedFile = new File(outputDirectory, String.format("%s/%s", folder, name));
+                assertTrue(String.format("Expected file to exist at %s", expectedFile), expectedFile.isFile());
+            }
+        } catch (Exception e) {
+            throw new AssertionError("Exception occurred while verifying output directory", e);
+        }
+    }
+
     private void givenDirectoryName(String folderName) {
         inputDirectory = new File(TEST_INPUT_DIR_ROOT, folderName);
         outputDirectory = new File(TEST_OUTPUT_DIR_ROOT, folderName);
+        dataFile = new File(TEST_INPUT_DIR_ROOT, String.format("%s.xlsx", folderName));
         expectedInputFile = new File("src/test/directories/" + folderName + "_expected_input.txt");
         actualInputFile = new File(outputDirectory, "INDEX.TXT");
         actualCopyRightFile = new File(outputDirectory, "COPYRIGHT.TXT");

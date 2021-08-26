@@ -57,6 +57,9 @@ public class PspiIndexGeneratorCLI {
         if(cmd.hasOption("q")) {
             builder.compressionQuality(Float.parseFloat(cmd.getOptionValue("q")));
         }
+        if(cmd.hasOption("d")) {
+            builder.dataFile(cmd.getOptionValue("d"));
+        }
         final PspiIndexGenerator generator = builder.build();
         final File inputDirectory = new File(cmd.getOptionValue("i"));
         final File outputDirectory = new File(cmd.getOptionValue("o", cmd.getOptionValue("i") + "_generated"));
@@ -84,6 +87,7 @@ public class PspiIndexGeneratorCLI {
         options.addOption(Option.builder("h").longOpt("help").desc("Prints this message").build());
         options.addOption(Option.builder("i").longOpt("input-dir").hasArg().argName("inputDir").desc("Location of input directory").build());
         options.addOption(Option.builder("o").longOpt("output-dir").hasArg().argName("outputDir").desc("Location of output directory").build());
+        options.addOption(Option.builder("d").longOpt("data-file").hasArg().argName("dataFile").desc("Location of input data file").build());
         options.addOption(Option.builder("v").longOpt("verbose").desc("Enables verbose logging").build());
         options.addOption(Option.builder("f").longOpt("force").desc("Force overwrite of existing output directory").build());
         options.addOption(Option.builder("s").longOpt("strict").desc("Fails on unexpected files").build());

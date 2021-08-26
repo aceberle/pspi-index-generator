@@ -19,6 +19,8 @@ import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
 
 public class TestDataGenerator {
+    
+    private static final String ROOT = "%ROOT%";
 
     private FileUtils fileUtils = FileUtils.getInstance();
     
@@ -26,8 +28,16 @@ public class TestDataGenerator {
 
     private Map<String, Map<String, ImageSize>> testData = new HashMap<>();
     
+    public void addTestImage(String imageName, ImageSize spec) {
+        addTestImage(null, imageName, spec);
+    }
+    
     public void addTestImage(String folderName, String imageName, ImageSize spec) {
         getTestFolder(folderName).put(imageName, spec);
+    }
+    
+    public void addTestImage(String imageName, int width, int height) {
+        addTestImage(null, imageName, width, height);
     }
     
     public void addTestImage(String folderName, String imageName, int width, int height) {
@@ -35,10 +45,11 @@ public class TestDataGenerator {
     }
 
     private Map<String, ImageSize> getTestFolder(String folderName) {
-        Map<String, ImageSize> folderData = testData.get(folderName);
+        final String actualFolderName = folderName == null ? ROOT : folderName;
+        Map<String, ImageSize> folderData = testData.get(actualFolderName);
         if(folderData == null) {
             folderData = new HashMap<>();
-            testData.put(folderName, folderData);
+            testData.put(actualFolderName, folderData);
         }
         return folderData;
     }
@@ -57,7 +68,8 @@ public class TestDataGenerator {
             fileUtils.cleanDirectory(targetDir);
         }
         for(Entry<String, Map<String, ImageSize>> testDirEntry : testData.entrySet()) {
-            final File testDirFile = new File(targetDir, testDirEntry.getKey());
+            final String testDirName = testDirEntry.getKey();
+            final File testDirFile = ROOT.equals(testDirName) ? targetDir : new File(targetDir, testDirName);
             System.out.println("Creating directory at: " + testDirFile);
             testDirFile.mkdirs();
             for(Entry<String, ImageSize> testImageEntry : testDirEntry.getValue().entrySet()) {

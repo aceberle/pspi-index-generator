@@ -8,10 +8,14 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.eberlecreative.pspiindexgenerator.datafileparser.DataFileParser;
 import com.eberlecreative.pspiindexgenerator.errorhandler.DefaultErrorHandlerFactory;
 import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandler;
 import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandlerFactory;
@@ -66,6 +70,10 @@ public class PspiIndexGenerator {
 
     private boolean forceOutput;
 
+    private String dataFilePath;
+
+    private DataFileParser dataFileParser = new DataFileParser();
+
     public static class Builder {
 
         private PspiIndexGenerator instance = new PspiIndexGenerator();
@@ -99,6 +107,11 @@ public class PspiIndexGenerator {
 
         public Builder indexRecordFieldsFactory(IndexRecordFieldsFactory indexRecordFieldsFactory) {
             instance.indexRecordFieldsFactory = indexRecordFieldsFactory;
+            return this;
+        }
+
+        public Builder dataFile(String dataFilePath) {
+            instance.dataFilePath = dataFilePath;
             return this;
         }
 
@@ -167,26 +180,139 @@ public class PspiIndexGenerator {
         logger.logInfo("Starting generation...");
         validateInputDirectory(inputDirectory);
         validateAndInitOutputDirectory(outputDirectory);
-        final String volumeName = outputDirectory.getName();
         final File indexFile = new File(outputDirectory, "INDEX.TXT");
         final Collection<RecordField> recordFields = indexRecordFieldsFactory.getIndexRecordFields();
         final ErrorHandler errorHandler = errorHandlerFactory.getErrorHandler(logger);
         final ImageCopier imageCopier = imageCopierFactory.getImageCopier(logger, errorHandler, imageModifierFactory);
+        final FileProcessingStrategy processingStrategy = dataFilePath == null ? getPathPatternProcessingStrategy() : getDataFileProcessingStrategy();
         try (RecordWriter indexRecordWriter = indexRecordWriterFactory.getRecordWriter(indexFile, recordFields)) {
             indexRecordWriter.writeHeaders();
-            for (File imageFolder : sort(inputDirectory.listFiles())) {
-                if(imageFolder.isHidden()) {
+            processingStrategy.processFiles(indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields);
+            logger.logInfo("Creating COPYRIGHT.TXT file...");
+            fileUtils.save(resourceUtils.getResourceAsStream("/COPYRIGHT.TXT"), new File(outputDirectory, "COPYRIGHT.TXT"));
+            logger.logInfo("Generation completed!");
+        }
+    }
+
+    private static final Pattern IMAGE_NAME_PATTERN = Pattern.compile("^(\\d+)\\.(jpg|jpeg|mpg|mpeg|gif|png)$");
+    
+    private static final Pattern FIRST_LAST_PATTERN = Pattern.compile("^(.+)\\s+([^\\s]+)$");
+    
+    private static final Pattern LAST_FIRST_PATTERN = Pattern.compile("^([^\\s]+)\\s+(.+)$");
+    
+    private static final String IMAGES_DIR_NAME = "images";
+
+    private static final String CSV_HEADER_LAST_FIRST = "lastFirst";
+    
+    private static final String CSV_HEADER_FIRST_LAST = "firstLast";
+    
+    private FileProcessingStrategy getDataFileProcessingStrategy() {
+        return (indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields) -> {
+            final List<Map<String, String>> rawData = dataFileParser.parseDataFile(dataFilePath);
+            final Map<Long, Map<String, String>> dataByImageNumber = getDataByImageNumber(rawData, errorHandler);
+            final File imageOutputDirectory = new File(outputDirectory, IMAGES_DIR_NAME);
+            final String volumeName = outputDirectory.getName();
+            for (File file : sort(inputDirectory.listFiles())) {
+                if(file.isHidden()) {
                     continue;
                 }
-                logger.logInfo("Processing image folder: " + imageFolder);
-                final String imageFolderName = imageFolder.getName();
+                logger.logInfo("Processing path: " + file);
+                if (!file.isFile()) {
+                    errorHandler.handleError("Expected path to be a file: " + file);
+                } else {
+                    final String imageFileName = file.getName();
+                    final Matcher imageFileMatcher = IMAGE_NAME_PATTERN.matcher(imageFileName);
+                    if (!imageFileMatcher.matches()) {
+                        errorHandler.handleError("Encountered unexpected file name \"%s\" while processing file: %s", imageFileName, file);
+                    } else {
+                        final Path newImageFilePath = fileUtils.getRelativePath(inputDirectory, imageOutputDirectory, file);
+                        fileUtils.makeParentDirectory(newImageFilePath.toFile());
+                        imageCopier.copyImage(file.toPath(), newImageFilePath);
+                        final Long imageNumber = Long.parseLong(imageFileMatcher.group(1));
+                        final Map<String, String> rowData = dataByImageNumber.get(imageNumber);
+                        if(rowData == null) {
+                            errorHandler.handleError("Could not find row data for image number %s while processing image file: %s", imageNumber, file);
+                        } else {
+                            final Map<String, String> indexRecord = new HashMap<>();
+                            for (RecordField field : recordFields) {
+                                final String fieldName = field.getName();
+                                final String valueFromMatchers = rowData.get(fieldName);
+                                if (valueFromMatchers != null) {
+                                    indexRecord.put(fieldName, valueFromMatchers);
+                                }
+                            }
+                            final String lastName = indexRecord.get(IndexRecordFields.LAST_NAME);
+                            final String firstName = indexRecord.get(IndexRecordFields.FIRST_NAME);
+                            if(StringUtils.isAnyBlank(lastName, firstName)) {
+                                final String lastFirst = rowData.get(CSV_HEADER_LAST_FIRST);
+                                final String firstLast = rowData.get(CSV_HEADER_FIRST_LAST);
+                                if(StringUtils.isNotBlank(lastFirst)) {
+                                    final Matcher matcher = LAST_FIRST_PATTERN.matcher(rowData.get(CSV_HEADER_LAST_FIRST));
+                                    if(matcher.matches()) {
+                                        indexRecord.put(IndexRecordFields.LAST_NAME, matcher.group(1));
+                                        indexRecord.put(IndexRecordFields.FIRST_NAME, matcher.group(2));
+                                    }
+                                } else if(StringUtils.isNotBlank(firstLast)) {
+                                    final Matcher matcher = FIRST_LAST_PATTERN.matcher(rowData.get(CSV_HEADER_FIRST_LAST));
+                                    if(matcher.matches()) {
+                                        indexRecord.put(IndexRecordFields.FIRST_NAME, matcher.group(1));
+                                        indexRecord.put(IndexRecordFields.LAST_NAME, matcher.group(2));
+                                    }
+                                }
+                            }
+                            useAliasValueIfEmpty(indexRecord, IndexRecordFields.HOME_ROOM, IndexRecordFields.GRADE);
+                            indexRecord.put(IndexRecordFields.VOLUME_NAME, volumeName);
+                            indexRecord.put(IndexRecordFields.IMAGE_FOLDER, IMAGES_DIR_NAME);
+                            indexRecord.put(IndexRecordFields.IMAGE_FILE_NAME, imageFileName);
+                            indexRecord.put(IndexRecordFields.IMAGE_SIZE, getImageSize(newImageFilePath.toFile(), errorHandler));
+                            logger.logInfo("Logging index record: %s", indexRecord);
+                            indexRecordWriter.writeRecord(indexRecord);
+                        }
+                    }
+                }
+            }
+        };
+    }
+    
+    private static final String IMAGE_NUMBER_HEADER = "imageNumber";
+
+    private Map<Long, Map<String, String>> getDataByImageNumber(List<Map<String, String>> rawData, ErrorHandler errorHandler) {
+        final Map<Long, Map<String, String>> results = new HashMap<>();
+        for(Map<String, String> data : rawData) {
+            final String rawImageNumber = data.get(IMAGE_NUMBER_HEADER);
+            if(rawImageNumber == null) {
+                errorHandler.handleError("Unable to locate image number in row information: %s", data);
+            }
+            try {
+                final long imageNumber = Long.parseLong(rawImageNumber);
+                if(results.containsKey(imageNumber)) {
+                    errorHandler.handleError("Image number %s has been defined in multiple rows!", imageNumber);
+                } else {
+                    results.put(imageNumber, data);
+                }
+            } catch (NumberFormatException e) {
+                errorHandler.handleError("An exception occured while trying to parse image number string \"%s\": %s", rawImageNumber, e.getMessage());
+            }
+        }
+        return results;
+    }
+
+    private FileProcessingStrategy getPathPatternProcessingStrategy() {
+        return (indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields) -> {
+            final String volumeName = outputDirectory.getName();
+            for (File file : sort(inputDirectory.listFiles())) {
+                if(file.isHidden()) {
+                    continue;
+                }
+                logger.logInfo("Processing path: " + file);
+                final String imageFolderName = file.getName();
                 final Matcher imageFolderMatcher = imageFolderPattern.matcher(imageFolderName);
-                if (!imageFolder.isDirectory()) {
-                    errorHandler.handleError("Expected path to be a directory: " + imageFolder);
+                if (!file.isDirectory()) {
+                    errorHandler.handleError("Expected path to be a directory: " + file);
                 } else if (!imageFolderMatcher.matches()) {
                     errorHandler.handleError("Encountered unexpected directory name: " + imageFolderName);
                 } else {
-                    for (File imageFile : sort(imageFolder.listFiles())) {
+                    for (File imageFile : sort(file.listFiles())) {
                         logger.logInfo("Processing image file: " + imageFile);
                         final String imageFileName = imageFile.getName();
                         final Matcher imageFileMatcher = imageFilePattern.matcher(imageFileName);
@@ -217,10 +343,7 @@ public class PspiIndexGenerator {
                     }
                 }
             }
-            logger.logInfo("Creating COPYRIGHT.TXT file...");
-            fileUtils.save(resourceUtils.getResourceAsStream("/COPYRIGHT.TXT"), new File(outputDirectory, "COPYRIGHT.TXT"));
-            logger.logInfo("Generation completed!");
-        }
+        };
     }
 
     private void useAliasValueIfEmpty(Map<String, String> indexRecord, String ifValueEmpty, String thenUseValue) {
