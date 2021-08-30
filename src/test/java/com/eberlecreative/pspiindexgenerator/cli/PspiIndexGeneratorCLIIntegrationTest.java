@@ -162,7 +162,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
     
     @Test
-    public void specifyThatUsingInputFileWorks() {
+    public void specifyThatUsingDataFileWorks() {
         givenDirectoryName("volume8");
         givenTestImage("001.jpg", PspiImageSize.SMALL);
         givenTestImage("002.jpg", PspiImageSize.SMALL);
@@ -175,6 +175,28 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
         thenOutputIsValidPspiDirectory();
+    }
+    
+    @Test
+    public void specifyThatUsingOutputFileFormatWorks() {
+        givenDirectoryName("volume9");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenTestImage("002.jpg", PspiImageSize.SMALL);
+        givenTestImage("003.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
+        givenExcelFileRow("3", "", "", "100102", "3", "HR-5th-2: Reid", "", "Bynum Meredith");
+        givenOutputFileFormat("<lastName>_<firstName>_<id>.jpg");
+        whenMainIsExecuted();
+        thenNoExceptionIsThrown();
+        thenActualIndexFileContentsMatchExpected();
+        thenOutputIsValidPspiDirectory();
+    }
+
+    private void givenOutputFileFormat(String outputFileFormat) {
+        commandArguments.add("-p");
+        commandArguments.add(outputFileFormat);
     }
 
     private void givenExcelFileRow(String...rowData) {

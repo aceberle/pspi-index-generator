@@ -69,4 +69,8 @@ public class FileUtils {
         }
     }
 
+    public void makeParentDirectory(Path newImageFilePath) {
+        makeParentDirectory(newImageFilePath.toFile());
+    }
+
 }

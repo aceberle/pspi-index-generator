@@ -8,10 +8,11 @@ import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandler;
 import com.eberlecreative.pspiindexgenerator.imagecopier.ImageCopier;
 import com.eberlecreative.pspiindexgenerator.record.RecordField;
 import com.eberlecreative.pspiindexgenerator.record.RecordWriter;
+import com.eberlecreative.pspiindexgenerator.targetfilepath.TargetFilePathResolver;
 
 @FunctionalInterface
 public interface FileProcessingStrategy {
 
-    void processFiles(RecordWriter indexRecordWriter, File inputDirectory, File outputDirectory, ErrorHandler errorHandler, ImageCopier imageCopier, Collection<RecordField> recordFields) throws IOException;
+    void processFiles(RecordWriter indexRecordWriter, File inputDirectory, File outputDirectory, ErrorHandler errorHandler, ImageCopier imageCopier, Collection<RecordField> recordFields, TargetFilePathResolver targetFilePathResolver) throws IOException;
 
 }

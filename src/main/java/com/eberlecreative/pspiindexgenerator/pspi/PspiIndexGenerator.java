@@ -10,6 +10,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,6 +32,8 @@ import com.eberlecreative.pspiindexgenerator.record.RecordField;
 import com.eberlecreative.pspiindexgenerator.record.RecordWriter;
 import com.eberlecreative.pspiindexgenerator.record.RecordWriterFactory;
 import com.eberlecreative.pspiindexgenerator.record.TabDelimitedRecordWriterFactory;
+import com.eberlecreative.pspiindexgenerator.targetfilepath.TargetFilePathResolver;
+import com.eberlecreative.pspiindexgenerator.targetfilepath.TargetFilePathResolverFactory;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
 import com.eberlecreative.pspiindexgenerator.util.ResourceUtils;
@@ -68,11 +72,13 @@ public class PspiIndexGenerator {
 
     private ImageModifierFactory imageModifierFactory = new ImageModifierFactory(CropAnchors.parseCropAnchor(DEFAULT_CROP_ANCHOR));
 
+    private DataFileParser dataFileParser = new DataFileParser();
+    
+    private TargetFilePathResolverFactory targetFilePathResolverFactory = new TargetFilePathResolverFactory();
+
     private boolean forceOutput;
 
     private String dataFilePath;
-
-    private DataFileParser dataFileParser = new DataFileParser();
 
     public static class Builder {
 
@@ -112,6 +118,11 @@ public class PspiIndexGenerator {
 
         public Builder dataFile(String dataFilePath) {
             instance.dataFilePath = dataFilePath;
+            return this;
+        }
+
+        public Builder outputFilePattern(String outputFilePattern) {
+            instance.targetFilePathResolverFactory.outputFilePattern(outputFilePattern);
             return this;
         }
 
@@ -183,11 +194,12 @@ public class PspiIndexGenerator {
         final File indexFile = new File(outputDirectory, "INDEX.TXT");
         final Collection<RecordField> recordFields = indexRecordFieldsFactory.getIndexRecordFields();
         final ErrorHandler errorHandler = errorHandlerFactory.getErrorHandler(logger);
+        final TargetFilePathResolver targetFilePathResolver = targetFilePathResolverFactory.getTargetFilePathResolver();
         final ImageCopier imageCopier = imageCopierFactory.getImageCopier(logger, errorHandler, imageModifierFactory);
         final FileProcessingStrategy processingStrategy = dataFilePath == null ? getPathPatternProcessingStrategy() : getDataFileProcessingStrategy();
         try (RecordWriter indexRecordWriter = indexRecordWriterFactory.getRecordWriter(indexFile, recordFields)) {
             indexRecordWriter.writeHeaders();
-            processingStrategy.processFiles(indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields);
+            processingStrategy.processFiles(indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields, targetFilePathResolver);
             logger.logInfo("Creating COPYRIGHT.TXT file...");
             fileUtils.save(resourceUtils.getResourceAsStream("/COPYRIGHT.TXT"), new File(outputDirectory, "COPYRIGHT.TXT"));
             logger.logInfo("Generation completed!");
@@ -207,7 +219,7 @@ public class PspiIndexGenerator {
     private static final String CSV_HEADER_FIRST_LAST = "firstLast";
     
     private FileProcessingStrategy getDataFileProcessingStrategy() {
-        return (indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields) -> {
+        return (indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields, targetFilePathResolver) -> {
             final List<Map<String, String>> rawData = dataFileParser.parseDataFile(dataFilePath);
             final Map<Long, Map<String, String>> dataByImageNumber = getDataByImageNumber(rawData, errorHandler);
             final File imageOutputDirectory = new File(outputDirectory, IMAGES_DIR_NAME);
@@ -225,11 +237,12 @@ public class PspiIndexGenerator {
                     if (!imageFileMatcher.matches()) {
                         errorHandler.handleError("Encountered unexpected file name \"%s\" while processing file: %s", imageFileName, file);
                     } else {
-                        final Path newImageFilePath = fileUtils.getRelativePath(inputDirectory, imageOutputDirectory, file);
-                        fileUtils.makeParentDirectory(newImageFilePath.toFile());
-                        imageCopier.copyImage(file.toPath(), newImageFilePath);
                         final Long imageNumber = Long.parseLong(imageFileMatcher.group(1));
                         final Map<String, String> rowData = dataByImageNumber.get(imageNumber);
+                        updateNames(rowData);
+                        final Path newImageFilePath = targetFilePathResolver.getTargetFilePath(inputDirectory, imageOutputDirectory, file, rowData);
+                        fileUtils.makeParentDirectory(newImageFilePath);
+                        imageCopier.copyImage(file.toPath(), newImageFilePath);
                         if(rowData == null) {
                             errorHandler.handleError("Could not find row data for image number %s while processing image file: %s", imageNumber, file);
                         } else {
@@ -241,29 +254,10 @@ public class PspiIndexGenerator {
                                     indexRecord.put(fieldName, valueFromMatchers);
                                 }
                             }
-                            final String lastName = indexRecord.get(IndexRecordFields.LAST_NAME);
-                            final String firstName = indexRecord.get(IndexRecordFields.FIRST_NAME);
-                            if(StringUtils.isAnyBlank(lastName, firstName)) {
-                                final String lastFirst = rowData.get(CSV_HEADER_LAST_FIRST);
-                                final String firstLast = rowData.get(CSV_HEADER_FIRST_LAST);
-                                if(StringUtils.isNotBlank(lastFirst)) {
-                                    final Matcher matcher = LAST_FIRST_PATTERN.matcher(rowData.get(CSV_HEADER_LAST_FIRST));
-                                    if(matcher.matches()) {
-                                        indexRecord.put(IndexRecordFields.LAST_NAME, matcher.group(1));
-                                        indexRecord.put(IndexRecordFields.FIRST_NAME, matcher.group(2));
-                                    }
-                                } else if(StringUtils.isNotBlank(firstLast)) {
-                                    final Matcher matcher = FIRST_LAST_PATTERN.matcher(rowData.get(CSV_HEADER_FIRST_LAST));
-                                    if(matcher.matches()) {
-                                        indexRecord.put(IndexRecordFields.FIRST_NAME, matcher.group(1));
-                                        indexRecord.put(IndexRecordFields.LAST_NAME, matcher.group(2));
-                                    }
-                                }
-                            }
                             useAliasValueIfEmpty(indexRecord, IndexRecordFields.HOME_ROOM, IndexRecordFields.GRADE);
                             indexRecord.put(IndexRecordFields.VOLUME_NAME, volumeName);
                             indexRecord.put(IndexRecordFields.IMAGE_FOLDER, IMAGES_DIR_NAME);
-                            indexRecord.put(IndexRecordFields.IMAGE_FILE_NAME, imageFileName);
+                            indexRecord.put(IndexRecordFields.IMAGE_FILE_NAME, newImageFilePath.toFile().getName());
                             indexRecord.put(IndexRecordFields.IMAGE_SIZE, getImageSize(newImageFilePath.toFile(), errorHandler));
                             logger.logInfo("Logging index record: %s", indexRecord);
                             indexRecordWriter.writeRecord(indexRecord);
@@ -274,6 +268,28 @@ public class PspiIndexGenerator {
         };
     }
     
+    private void updateNames(Map<String, String> rowData) {
+        final String lastName = rowData.get(IndexRecordFields.LAST_NAME);
+        final String firstName = rowData.get(IndexRecordFields.FIRST_NAME);
+        if(StringUtils.isAnyBlank(lastName, firstName)) {
+            final String lastFirst = rowData.get(CSV_HEADER_LAST_FIRST);
+            final String firstLast = rowData.get(CSV_HEADER_FIRST_LAST);
+            if(StringUtils.isNotBlank(lastFirst)) {
+                final Matcher matcher = LAST_FIRST_PATTERN.matcher(rowData.get(CSV_HEADER_LAST_FIRST));
+                if(matcher.matches()) {
+                    rowData.put(IndexRecordFields.LAST_NAME, matcher.group(1));
+                    rowData.put(IndexRecordFields.FIRST_NAME, matcher.group(2));
+                }
+            } else if(StringUtils.isNotBlank(firstLast)) {
+                final Matcher matcher = FIRST_LAST_PATTERN.matcher(rowData.get(CSV_HEADER_FIRST_LAST));
+                if(matcher.matches()) {
+                    rowData.put(IndexRecordFields.FIRST_NAME, matcher.group(1));
+                    rowData.put(IndexRecordFields.LAST_NAME, matcher.group(2));
+                }
+            }
+        }
+    }
+
     private static final String IMAGE_NUMBER_HEADER = "imageNumber";
 
     private Map<Long, Map<String, String>> getDataByImageNumber(List<Map<String, String>> rawData, ErrorHandler errorHandler) {
@@ -298,7 +314,7 @@ public class PspiIndexGenerator {
     }
 
     private FileProcessingStrategy getPathPatternProcessingStrategy() {
-        return (indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields) -> {
+        return (indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields, targetFilePathResolver) -> {
             final String volumeName = outputDirectory.getName();
             for (File file : sort(inputDirectory.listFiles())) {
                 if(file.isHidden()) {
@@ -321,13 +337,14 @@ public class PspiIndexGenerator {
                         } else if (!imageFileMatcher.matches()) {
                             errorHandler.handleError("Encountered unexpected file name: " + imageFileName);
                         } else {
-                            final Path newImageFilePath = fileUtils.getRelativePath(inputDirectory, outputDirectory, imageFile);
+                            final Map<String, String> fieldValues = getFromMatchers(imageFileMatcher, imageFolderMatcher);
+                            final Path newImageFilePath = targetFilePathResolver.getTargetFilePath(inputDirectory, outputDirectory, imageFile, fieldValues);
                             fileUtils.makeParentDirectory(newImageFilePath.toFile());
                             imageCopier.copyImage(imageFile.toPath(), newImageFilePath);
                             final Map<String, String> indexRecord = new HashMap<>();
                             for (RecordField field : recordFields) {
                                 final String fieldName = field.getName();
-                                final String valueFromMatchers = getFromMatchers(fieldName, imageFileMatcher, imageFolderMatcher);
+                                final String valueFromMatchers = fieldValues.get(fieldName);
                                 if (valueFromMatchers != null) {
                                     indexRecord.put(fieldName, valueFromMatchers);
                                 }
@@ -378,16 +395,31 @@ public class PspiIndexGenerator {
         Arrays.sort(files, (f1, f2) -> String.CASE_INSENSITIVE_ORDER.compare(f1.getName(), f2.getName()));
         return files;
     }
-
-    private String getFromMatchers(String fieldName, Matcher... matchers) {
-        for (Matcher matcher : matchers) {
-            try {
-                return matcher.group(fieldName);
-            } catch (IllegalArgumentException e) {
-                // ignore
-            }
+    
+    private Map<String, String> getFromMatchers(Matcher...matchers) {
+       final Map<String, String> results = new HashMap<>();
+       for(Matcher matcher : matchers) {
+           final Set<String> names = getNamedGroupCandidates(matcher.pattern().pattern());
+           for(String name : names) {
+               try {
+                   results.put(name, matcher.group(name));
+               } catch (IllegalArgumentException e) {
+                   // ignore
+               }
+           }
+       }
+       return results;
+    }
+    
+    private static final Pattern NAMED_GROUPS = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
+    
+    private static Set<String> getNamedGroupCandidates(String regex) {
+        final Set<String> namedGroups = new TreeSet<String>();
+        final Matcher m = NAMED_GROUPS.matcher(regex);
+        while (m.find()) {
+            namedGroups.add(m.group(1));
         }
-        return null;
+        return namedGroups;
     }
 
     private String getImageSize(File imageFile, ErrorHandler errorHandler) throws IOException {
