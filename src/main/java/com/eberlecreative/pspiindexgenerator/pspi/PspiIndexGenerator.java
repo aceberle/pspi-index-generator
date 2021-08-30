@@ -75,6 +75,8 @@ public class PspiIndexGenerator {
     private DataFileParser dataFileParser = new DataFileParser();
     
     private TargetFilePathResolverFactory targetFilePathResolverFactory = new TargetFilePathResolverFactory();
+    
+    private PspiDirectoryValidator validator = new PspiDirectoryValidator();
 
     private boolean forceOutput;
 
@@ -189,9 +191,9 @@ public class PspiIndexGenerator {
 
     public void generate(File inputDirectory, File outputDirectory) throws Exception {
         logger.logInfo("Starting generation...");
-        validateInputDirectory(inputDirectory);
+        fileUtils.assertIsDirectory(inputDirectory);
         validateAndInitOutputDirectory(outputDirectory);
-        final File indexFile = new File(outputDirectory, "INDEX.TXT");
+        final File indexFile = new File(outputDirectory, PspiConstants.INDEX_FILE_NAME);
         final Collection<RecordField> recordFields = indexRecordFieldsFactory.getIndexRecordFields();
         final ErrorHandler errorHandler = errorHandlerFactory.getErrorHandler(logger);
         final TargetFilePathResolver targetFilePathResolver = targetFilePathResolverFactory.getTargetFilePathResolver();
@@ -201,9 +203,12 @@ public class PspiIndexGenerator {
             indexRecordWriter.writeHeaders();
             processingStrategy.processFiles(indexRecordWriter, inputDirectory, outputDirectory, errorHandler, imageCopier, recordFields, targetFilePathResolver);
             logger.logInfo("Creating COPYRIGHT.TXT file...");
-            fileUtils.save(resourceUtils.getResourceAsStream("/COPYRIGHT.TXT"), new File(outputDirectory, "COPYRIGHT.TXT"));
+            fileUtils.save(resourceUtils.getResourceAsStream("/"+PspiConstants.COPYRIGHT_FILE_NAME), new File(outputDirectory, PspiConstants.COPYRIGHT_FILE_NAME));
             logger.logInfo("Generation completed!");
         }
+        logger.logInfo("Validating output directory...");
+        validator.validatePspiDirectory(outputDirectory);
+        logger.logInfo("Validation completed!");
     }
 
     private static final Pattern IMAGE_NAME_PATTERN = Pattern.compile("^(\\d+)\\.(jpg|jpeg|mpg|mpeg|gif|png)$");
@@ -366,12 +371,6 @@ public class PspiIndexGenerator {
     private void useAliasValueIfEmpty(Map<String, String> indexRecord, String ifValueEmpty, String thenUseValue) {
         if(indexRecord.get(ifValueEmpty) == null) {
             indexRecord.put(ifValueEmpty, indexRecord.get(thenUseValue));
-        }
-    }
-
-    private void validateInputDirectory(File inputDirectory) {
-        if (!inputDirectory.isDirectory()) {
-            throw new RuntimeException("Expected path to exist: " + inputDirectory);
         }
     }
 

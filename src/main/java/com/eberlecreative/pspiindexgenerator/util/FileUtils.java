@@ -73,4 +73,19 @@ public class FileUtils {
         makeParentDirectory(newImageFilePath.toFile());
     }
 
+    public void assertIsDirectory(File directory) {
+        if (!directory.isDirectory()) {
+            throw new RuntimeException("Expected directory to exist: " + directory);
+        }
+    }
+
+    public void assertIsFileWithSize(File expectedFile) {
+        if (!expectedFile.isFile()) {
+            throw new RuntimeException(String.format("Expected file to exist: %s", expectedFile));
+        }
+        if(expectedFile.length() == 0) {
+            throw new RuntimeException(String.format("Expected file to have size but was empty: %s", expectedFile));
+        }
+    }
+
 }

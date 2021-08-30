@@ -6,18 +6,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVFormat.Builder;
-import org.apache.commons.csv.CSVRecord;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -83,7 +78,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
-        thenOutputIsValidPspiDirectory();
     }
     
     @Test
@@ -93,7 +87,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualCopyRightFileContentsMatchExpected();
-        thenOutputIsValidPspiDirectory();
     }
 
     @Test
@@ -102,7 +95,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         givenImageWithInvalidAspectRatio();
         whenMainIsExecuted();
         thenActualIndexFileContentsMatchExpected();
-        thenOutputIsValidPspiDirectory();
     }
 
     @Test
@@ -121,7 +113,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
-        thenOutputIsValidPspiDirectory();
     }
     
     @Test
@@ -131,7 +122,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
-        thenOutputIsValidPspiDirectory();
     }
     
     @Test
@@ -158,7 +148,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         givenLargeImageInFolderWithoutHomeRoom();
         whenMainIsExecuted();
         thenActualIndexFileContentsMatchExpected();
-        thenOutputIsValidPspiDirectory();
     }
     
     @Test
@@ -174,7 +163,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
-        thenOutputIsValidPspiDirectory();
     }
     
     @Test
@@ -191,7 +179,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         whenMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
-        thenOutputIsValidPspiDirectory();
     }
 
     private void givenOutputFileFormat(String outputFileFormat) {
@@ -347,20 +334,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     
     private void givenTestImage(String folderName, String imageName, int width, int height) {
         testDataGenerator.addTestImage(folderName, imageName, width, height);
-    }
-
-    private void thenOutputIsValidPspiDirectory() {
-        try (Reader in = new FileReader(actualInputFile)) {
-            final Iterable<CSVRecord> records = Builder.create(CSVFormat.TDF).setHeader().setSkipHeaderRecord(true).build().parse(in);
-            for(CSVRecord record : records) {
-                final String folder = record.get("Image Folder");
-                final String name = record.get("Image File Name");
-                final File expectedFile = new File(outputDirectory, String.format("%s/%s", folder, name));
-                assertTrue(String.format("Expected file to exist at %s", expectedFile), expectedFile.isFile());
-            }
-        } catch (Exception e) {
-            throw new AssertionError("Exception occurred while verifying output directory", e);
-        }
     }
 
     private void givenDirectoryName(String folderName) {
