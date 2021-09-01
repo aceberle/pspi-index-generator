@@ -180,6 +180,16 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
     }
+    
+    @Test
+    public void specifyThatUsingOutputFileFormatWorksWithFileNameDataSource() {
+        givenDirectoryName("volume10");
+        givenLargeImage();
+        givenOutputFileFormat("<lastName>_<firstName>.jpg");
+        whenMainIsExecuted();
+        thenNoExceptionIsThrown();
+        thenActualIndexFileContentsMatchExpected();
+    }
 
     private void givenOutputFileFormat(String outputFileFormat) {
         commandArguments.add("-p");

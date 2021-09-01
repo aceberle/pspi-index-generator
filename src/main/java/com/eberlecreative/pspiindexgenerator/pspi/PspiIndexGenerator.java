@@ -357,7 +357,7 @@ public class PspiIndexGenerator {
                             useAliasValueIfEmpty(indexRecord, IndexRecordFields.HOME_ROOM, IndexRecordFields.GRADE);
                             indexRecord.put(IndexRecordFields.VOLUME_NAME, volumeName);
                             indexRecord.put(IndexRecordFields.IMAGE_FOLDER, imageFolderName);
-                            indexRecord.put(IndexRecordFields.IMAGE_FILE_NAME, imageFileName);
+                            indexRecord.put(IndexRecordFields.IMAGE_FILE_NAME, newImageFilePath.toFile().getName());
                             indexRecord.put(IndexRecordFields.IMAGE_SIZE, getImageSize(newImageFilePath.toFile(), errorHandler));
                             logger.logInfo("Logging index record: %s", indexRecord);
                             indexRecordWriter.writeRecord(indexRecord);
