@@ -14,6 +14,11 @@ public class TestWorkbookGenerator {
     private String[] columnHeaders;
     
     private List<String[]> rowDatas = new ArrayList<>();
+    
+    public void reset() {
+        columnHeaders = null;
+        rowDatas.clear();
+    }
 
     public void setColumnHeaders(String...headers) {
         this.columnHeaders = headers;
@@ -38,6 +43,8 @@ public class TestWorkbookGenerator {
                 workbook.write(outputStream);
             } catch (Exception e) {
                 throw new RuntimeException(e);
+            } finally {
+                reset();
             }
         }
     }

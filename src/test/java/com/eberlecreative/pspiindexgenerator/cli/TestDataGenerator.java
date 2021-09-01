@@ -54,47 +54,57 @@ public class TestDataGenerator {
         return folderData;
     }
     
-    public void generateTestImages(File targetDir) throws IOException {
-        final BufferedImage sourceImage = imageUtils.readImage(new File("src/test/resources/profile.jpg"));
-        final int origWidth = sourceImage.getWidth();
-        final int origHeight = sourceImage.getHeight();
-        final EventHandler noOpEventHandler = new NoOpEventHandler();
-        final ImageModifierFactory modifierFactory = new ImageModifierFactory(CropAnchors.parseCropAnchor("top-middle"));
-        if(!targetDir.exists()) {
-            targetDir.mkdirs();
-        } else if (!targetDir.isDirectory()) {
-            throw new RuntimeException("Expected target dir to be a directory!: " + targetDir);
-        } else {
-            fileUtils.cleanDirectory(targetDir);
-        }
-        for(Entry<String, Map<String, ImageSize>> testDirEntry : testData.entrySet()) {
-            final String testDirName = testDirEntry.getKey();
-            final File testDirFile = ROOT.equals(testDirName) ? targetDir : new File(targetDir, testDirName);
-            System.out.println("Creating directory at: " + testDirFile);
-            testDirFile.mkdirs();
-            for(Entry<String, ImageSize> testImageEntry : testDirEntry.getValue().entrySet()) {
-                final File testImageFile = new File(testDirFile, testImageEntry.getKey());
-                System.out.println("Creating file at: " + testImageFile);
-                final ImageSize targetSize = testImageEntry.getValue();
-                final int targetWidth = targetSize.getWidth();
-                final int targetHeight = targetSize.getHeight();
-                BufferedImage targetImage;
-                if(targetWidth > origWidth || targetHeight > origHeight) {
-                    targetImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
-                    final Graphics g = targetImage.getGraphics();
-                    for(int y = 0; y < targetHeight; y += origHeight) {
-                        for(int x = 0; x < targetWidth; x += origWidth) {
-                            g.drawImage(sourceImage, x, y, null);
-                        }
-                    }
-                    g.dispose();
-                } else {
-                    modifierFactory.resizeImages(targetSize);
-                    final ImageModifier modifier = modifierFactory.getImageModifier(noOpEventHandler);
-                    targetImage = modifier.modifyImage(testImageFile, sourceImage);
-                }
-                ImageIO.write(targetImage, "jpg", testImageFile);
+    public void reset() {
+        testData.clear();
+    }
+    
+    public void generateTestImages(File targetDir) {
+        try {
+            final BufferedImage sourceImage = imageUtils.readImage(new File("src/test/resources/profile.jpg"));
+            final int origWidth = sourceImage.getWidth();
+            final int origHeight = sourceImage.getHeight();
+            final EventHandler noOpEventHandler = new NoOpEventHandler();
+            final ImageModifierFactory modifierFactory = new ImageModifierFactory(CropAnchors.parseCropAnchor("top-middle"));
+            if(!targetDir.exists()) {
+                targetDir.mkdirs();
+            } else if (!targetDir.isDirectory()) {
+                throw new RuntimeException("Expected target dir to be a directory!: " + targetDir);
+            } else {
+                fileUtils.cleanDirectory(targetDir);
             }
+            for(Entry<String, Map<String, ImageSize>> testDirEntry : testData.entrySet()) {
+                final String testDirName = testDirEntry.getKey();
+                final File testDirFile = ROOT.equals(testDirName) ? targetDir : new File(targetDir, testDirName);
+                System.out.println("Creating directory at: " + testDirFile);
+                testDirFile.mkdirs();
+                for(Entry<String, ImageSize> testImageEntry : testDirEntry.getValue().entrySet()) {
+                    final File testImageFile = new File(testDirFile, testImageEntry.getKey());
+                    System.out.println("Creating file at: " + testImageFile);
+                    final ImageSize targetSize = testImageEntry.getValue();
+                    final int targetWidth = targetSize.getWidth();
+                    final int targetHeight = targetSize.getHeight();
+                    BufferedImage targetImage;
+                    if(targetWidth > origWidth || targetHeight > origHeight) {
+                        targetImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+                        final Graphics g = targetImage.getGraphics();
+                        for(int y = 0; y < targetHeight; y += origHeight) {
+                            for(int x = 0; x < targetWidth; x += origWidth) {
+                                g.drawImage(sourceImage, x, y, null);
+                            }
+                        }
+                        g.dispose();
+                    } else {
+                        modifierFactory.resizeImages(targetSize);
+                        final ImageModifier modifier = modifierFactory.getImageModifier(noOpEventHandler);
+                        targetImage = modifier.modifyImage(testImageFile, sourceImage);
+                    }
+                    ImageIO.write(targetImage, "jpg", testImageFile);
+                }
+            }
+        } catch(IOException e) {
+            throw new RuntimeException("An error occurred while generating test data!", e);
+        } finally {
+            reset();
         }
     }
 

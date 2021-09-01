@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,8 +52,6 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private File expectedInputFile;
 
     private File actualInputFile;
-
-    private List<String> commandArguments;
     
     private Exception thrownException;
 
@@ -60,99 +59,106 @@ public class PspiIndexGeneratorCLIIntegrationTest {
 
     private File dataFile;
     
+    private String outputFileFormat;
+
+    private PspiImageSize imageSize;
+
+    private String currentDirectoryName;
+    
     @Before
     public void init() {
         testDataGenerator = new TestDataGenerator();
         testWorkbookGenerator = new TestWorkbookGenerator();
+        currentDirectoryName = null;
+        outputDirectory = null;
         inputDirectory = null;
-        commandArguments = new ArrayList<>();
-        commandArguments.add("-f");
-        commandArguments.add("-v");
-        commandArguments.add("-s");
+        outputFileFormat = null;
+        imageSize = null;
+        dataFile = null;
     }
     
     @Test
     public void specifyThatActualIndexFileContentsMatchExpectedWhenMainIsExecutedAndHasLargeImage() {
-        givenDirectoryName("volume1");
+        givenCleanDirectoryName("volume1");
         givenLargeImage();
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
     }
     
     @Test
     public void specifyThatActualCopyRightFileContentsMatchExpectedWhenMainIsExecutedAndHasLargeImage() {
-        givenDirectoryName("volume1");
+        givenCleanDirectoryName("volume1");
         givenLargeImage();
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualCopyRightFileContentsMatchExpected();
     }
 
     @Test
     public void specifyThatActualIndexFileContentsMatchExpectedAndPictureHasInvalidAspectRatio() {
-        givenDirectoryName("volume2");
+        givenCleanDirectoryName("volume2");
         givenImageWithInvalidAspectRatio();
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenActualIndexFileContentsMatchExpected();
     }
 
     @Test
     public void specifyThatExceptionIsThrownWhenMainIsExecutedAndPictureHasInvalidAspectRatio() {
-        givenDirectoryName("volume2");
+        givenCleanDirectoryName("volume2");
         givenImageWithInvalidAspectRatio();
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenExceptionIsThrown(RuntimeException.class, String.format("Invalid image found! Expected aspect ratio of 0.8 but found 850px / 1000px = 0.85, image at: %2$s%1$s11_Smith%1$sJohn_Doe.jpg", File.separator, outputDirectory.getAbsolutePath()));
     }
 
     @Test
     public void specifyThatActualIndexFileContentsMatchExpectedWhenMainIsExecutedAndPictureHasInvalidAspectRatioButResizeIsEnabled() {
-        givenDirectoryName("volume3");
+        givenCleanDirectoryName("volume3");
         givenImageWithInvalidAspectRatio();
         givenResizeEnabled(PspiImageSize.LARGE);
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
     }
     
     @Test
     public void specifyThatActualIndexFileContentsMatchExpectedWhenMainIsExecutedAndHasSmallImage() {
-        givenDirectoryName("volume4");
+        givenCleanDirectoryName("volume4");
         givenSmallImage();
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
     }
     
     @Test
     public void specifyThatActualIndexFileNumEntriesMatchExpectedWhenMainIsExecutedAndManyValidImagesExist() {
-        givenDirectoryName("volume5");
+        givenCleanDirectoryName("volume5");
         givenManyValidImages();
         givenResizeEnabled(PspiImageSize.SMALL);
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContainsNumRows(1 + (NUM_FOLDERS * NUM_IMAGES_PER_FOLDER));
     }
     
     @Test
     public void specifyThatExceptionIsThrownWhenMainIsExecutedAndImageIsLargerThan10MB() {
-        givenDirectoryName("volume6");
+        givenCleanDirectoryName("volume6");
         givenImageLargerThan10MB();
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenExceptionIsThrown(RuntimeException.class, String.format("Invalid image found! Expected size to be less than 10000000 bytes but found size of %3$s bytes, image at: %2$s%1$s11_Smith%1$sJohn_Doe.jpg", File.separator, outputDirectory.getAbsolutePath(), getTestImageFileSize()));
     }
     
     @Test
     public void specifyThatGradeIsUsedForHomeRoomWhenMainIsExecutedAndHomeRoomIsNotAvailable() {
-        givenDirectoryName("volume7");
+        givenCleanDirectoryName("volume7");
         givenLargeImageInFolderWithoutHomeRoom();
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenActualIndexFileContentsMatchExpected();
     }
     
     @Test
     public void specifyThatUsingDataFileWorks() {
-        givenDirectoryName("volume8");
+        givenCleanDirectoryName("volume8");
         givenTestImage("001.jpg", PspiImageSize.SMALL);
         givenTestImage("002.jpg", PspiImageSize.SMALL);
         givenTestImage("003.jpg", PspiImageSize.SMALL);
@@ -160,14 +166,14 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
         givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
         givenExcelFileRow("3", "", "", "100102", "3", "HR-5th-2: Reid", "", "Bynum Meredith");
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
     }
     
     @Test
     public void specifyThatUsingOutputFileFormatWorks() {
-        givenDirectoryName("volume9");
+        givenCleanDirectoryName("volume9");
         givenTestImage("001.jpg", PspiImageSize.SMALL);
         givenTestImage("002.jpg", PspiImageSize.SMALL);
         givenTestImage("003.jpg", PspiImageSize.SMALL);
@@ -176,24 +182,39 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
         givenExcelFileRow("3", "", "", "100102", "3", "HR-5th-2: Reid", "", "Bynum Meredith");
         givenOutputFileFormat("<lastName>_<firstName>_<id>.jpg");
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
     }
     
     @Test
     public void specifyThatUsingOutputFileFormatWorksWithFileNameDataSource() {
-        givenDirectoryName("volume10");
+        givenCleanDirectoryName("volume10");
         givenLargeImage();
         givenOutputFileFormat("<lastName>_<firstName>.jpg");
-        whenMainIsExecuted();
+        whenTestDataIsGeneratedAndMainIsExecuted();
         thenNoExceptionIsThrown();
         thenActualIndexFileContentsMatchExpected();
     }
+    
+    @Test
+    public void specifyThatExceptionIsThrownIfOutputDirectoryAlreadyHasFiles() {
+        givenCleanDirectoryName("volume11");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenNoExceptionIsThrown();
+        givenInputDirectory("volume11a");
+        givenTestImage("002.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenExceptionIsThrown(RuntimeException.class, String.format("Output directory is not empty!: %s", outputDirectory.getAbsolutePath()));
+    }
 
     private void givenOutputFileFormat(String outputFileFormat) {
-        commandArguments.add("-p");
-        commandArguments.add(outputFileFormat);
+        this.outputFileFormat = outputFileFormat;
     }
 
     private void givenExcelFileRow(String...rowData) {
@@ -201,9 +222,8 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
 
     private void givenExcelFileWithColumnHeaders(String...headers) {
+        dataFile = new File(TEST_INPUT_DIR_ROOT, String.format("%s.xlsx", currentDirectoryName));
         this.testWorkbookGenerator.setColumnHeaders(headers);
-        commandArguments.add("-d");
-        commandArguments.add(dataFile.getAbsolutePath());
     }
 
     private void givenManyValidImages() {
@@ -252,8 +272,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
 
     private void givenResizeEnabled(PspiImageSize imageSize) {
-        commandArguments.add("-r");
-        commandArguments.add(imageSize.name());
+        this.imageSize = imageSize;
     }
 
     private void givenImageWithInvalidAspectRatio() {
@@ -295,11 +314,34 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         assertEquals(expectedMessage, thrownException.getMessage());
     }
 
+    private void whenTestDataIsGeneratedAndMainIsExecuted() {
+        testDataGenerator.generateTestImages(inputDirectory);
+        testWorkbookGenerator.generateWorkbook(dataFile);
+        whenMainIsExecuted();
+    }
+
     private void whenMainIsExecuted() {
+        final List<String> commandArguments = new ArrayList<>();
+        commandArguments.add("-v");
+        commandArguments.add("-s");
+        commandArguments.add("-i");
+        commandArguments.add(inputDirectory.getAbsolutePath());
+        commandArguments.add("-o");
+        commandArguments.add(outputDirectory.getAbsolutePath());
+        if(outputFileFormat != null) {
+            commandArguments.add("-p");
+            commandArguments.add(outputFileFormat);
+        }
+        if(imageSize != null) {
+            commandArguments.add("-r");
+            commandArguments.add(imageSize.name());
+        }
+        if(dataFile != null) {
+            commandArguments.add("-d");
+            commandArguments.add(dataFile.getAbsolutePath());
+        }
         thrownException = null;
         try {
-            testDataGenerator.generateTestImages(inputDirectory);
-            testWorkbookGenerator.generateWorkbook(dataFile);
             PspiIndexGeneratorCLI.main(commandArguments.toArray(new String[commandArguments.size()]));
         } catch(Exception e) {
             thrownException = e;
@@ -346,17 +388,32 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         testDataGenerator.addTestImage(folderName, imageName, width, height);
     }
 
-    private void givenDirectoryName(String folderName) {
-        inputDirectory = new File(TEST_INPUT_DIR_ROOT, folderName);
-        outputDirectory = new File(TEST_OUTPUT_DIR_ROOT, folderName);
-        dataFile = new File(TEST_INPUT_DIR_ROOT, String.format("%s.xlsx", folderName));
-        expectedInputFile = new File("src/test/directories/" + folderName + "_expected_input.txt");
+    private void givenCleanDirectoryName(String folderName) {
+        givenDirectoryNamed(folderName);
+        cleanOutputDirectory();
+    }
+
+    private void cleanOutputDirectory() {
+        if(outputDirectory.exists()) {
+            try {
+                FileUtils.cleanDirectory(outputDirectory);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to clean output directory: " + outputDirectory, e);
+            }
+        }
+    }
+
+    private void givenDirectoryNamed(String directoryName) {
+        currentDirectoryName = directoryName;
+        givenInputDirectory(directoryName);
+        outputDirectory = new File(TEST_OUTPUT_DIR_ROOT, directoryName);
+        expectedInputFile = new File("src/test/directories/" + directoryName + "_expected_input.txt");
         actualInputFile = new File(outputDirectory, "INDEX.TXT");
         actualCopyRightFile = new File(outputDirectory, "COPYRIGHT.TXT");
-        commandArguments.add("-i");
-        commandArguments.add(inputDirectory.getAbsolutePath());
-        commandArguments.add("-o");
-        commandArguments.add(outputDirectory.getAbsolutePath());
+    }
+
+    private void givenInputDirectory(String folderName) {
+        inputDirectory = new File(TEST_INPUT_DIR_ROOT, folderName);
     }
 
 }
