@@ -11,6 +11,9 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.eberlecreative.pspiindexgenerator.outputfilenameresolver.Appender;
+import com.eberlecreative.pspiindexgenerator.outputfilenameresolver.OverridePatternParser;
+
 public class OverridePatternParserTest {
 
     private OverridePatternParser testObj;

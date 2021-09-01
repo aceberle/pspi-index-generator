@@ -3,7 +3,7 @@ package com.eberlecreative.pspiindexgenerator.imagemodifier;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
-import java.nio.file.Path;
+import java.io.File;
 
 import com.eberlecreative.pspiindexgenerator.logger.Logger;
 
@@ -19,16 +19,16 @@ public class ResizeImageModifier implements ImageModifier {
     }
 
     @Override
-    public BufferedImage modifyImage(Path imagePath, BufferedImage origImage) {
+    public BufferedImage modifyImage(File imageFile, BufferedImage origImage) {
         final int origWidth = origImage.getWidth();
         final int origHeight = origImage.getHeight();
         final int targetWidth = targetSize.getWidth();
         final int targetHeight = targetSize.getHeight();
         if(origWidth == targetWidth && origHeight == targetHeight) {
-            logger.logInfo("Skipping scaling for image \"%s\"", imagePath.getFileName());
+            logger.logInfo("Skipping scaling for image \"%s\"", imageFile.getName());
             return origImage;
         }
-        logger.logInfo("Resizing image \"%s\" from %sx%s to %sx%s", imagePath.getFileName(), origWidth, origHeight, targetWidth, targetHeight);
+        logger.logInfo("Resizing image \"%s\" from %sx%s to %sx%s", imageFile.getName(), origWidth, origHeight, targetWidth, targetHeight);
         final double origRatio = ((double)origWidth) / origHeight;
         final double targetRatio = ((double)targetWidth) / targetHeight;
         //https://stackoverflow.com/a/9090575

@@ -91,7 +91,7 @@ public class TestDataGenerator {
                 } else {
                     modifierFactory.resizeImages(targetSize);
                     final ImageModifier modifier = modifierFactory.getImageModifier(noOpLogger);
-                    targetImage = modifier.modifyImage(testImageFile.toPath(), sourceImage);
+                    targetImage = modifier.modifyImage(testImageFile, sourceImage);
                 }
                 ImageIO.write(targetImage, "jpg", testImageFile);
             }

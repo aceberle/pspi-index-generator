@@ -20,7 +20,7 @@ import com.arakelian.faker.model.Person;
 import com.arakelian.faker.service.RandomData;
 import com.arakelian.faker.service.RandomPerson;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageSize;
-import com.eberlecreative.pspiindexgenerator.pspi.PspiImageSize;
+import com.eberlecreative.pspiindexgenerator.pspi.util.PspiImageSize;
 
 public class PspiIndexGeneratorCLIIntegrationTest {
     

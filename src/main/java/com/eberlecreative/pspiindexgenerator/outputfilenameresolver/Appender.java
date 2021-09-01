@@ -1,4 +1,4 @@
-package com.eberlecreative.pspiindexgenerator.targetfilepath;
+package com.eberlecreative.pspiindexgenerator.outputfilenameresolver;
 
 import java.util.Map;
 

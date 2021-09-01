@@ -1,4 +1,4 @@
-package com.eberlecreative.pspiindexgenerator.pspi;
+package com.eberlecreative.pspiindexgenerator.pspi.util;
 
 import com.eberlecreative.pspiindexgenerator.imagemodifier.AspectRatioCalculator;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageSize;

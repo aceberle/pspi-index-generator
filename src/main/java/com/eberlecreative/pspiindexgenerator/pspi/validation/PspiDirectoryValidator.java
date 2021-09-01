@@ -1,4 +1,4 @@
-package com.eberlecreative.pspiindexgenerator.pspi;
+package com.eberlecreative.pspiindexgenerator.pspi.validation;
 
 import java.io.File;
 import java.io.FileReader;
@@ -8,6 +8,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVFormat.Builder;
 import org.apache.commons.csv.CSVRecord;
 
+import com.eberlecreative.pspiindexgenerator.pspi.util.PspiConstants;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 
 public class PspiDirectoryValidator {

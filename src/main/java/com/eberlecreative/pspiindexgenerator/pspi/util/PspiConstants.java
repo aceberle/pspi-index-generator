@@ -1,4 +1,4 @@
-package com.eberlecreative.pspiindexgenerator.pspi;
+package com.eberlecreative.pspiindexgenerator.pspi.util;
 
 public class PspiConstants {
 

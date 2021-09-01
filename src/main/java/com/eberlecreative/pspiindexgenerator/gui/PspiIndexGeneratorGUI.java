@@ -48,8 +48,8 @@ import javax.swing.text.StyleContext;
 import org.apache.commons.lang3.StringUtils;
 
 import com.eberlecreative.pspiindexgenerator.imagemodifier.CropAnchors;
-import com.eberlecreative.pspiindexgenerator.pspi.PspiImageSize;
-import com.eberlecreative.pspiindexgenerator.pspi.PspiIndexGenerator;
+import com.eberlecreative.pspiindexgenerator.pspi.generator.PspiIndexGenerator;
+import com.eberlecreative.pspiindexgenerator.pspi.util.PspiImageSize;
 
 import net.miginfocom.swing.MigLayout;
 

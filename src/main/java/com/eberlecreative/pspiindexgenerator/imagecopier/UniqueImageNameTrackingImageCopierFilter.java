@@ -1,7 +1,7 @@
 package com.eberlecreative.pspiindexgenerator.imagecopier;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -20,13 +20,13 @@ public class UniqueImageNameTrackingImageCopierFilter extends ImageCopierFilter 
     }
 
     @Override
-    public void copyImage(Path sourcePath, Path targetPath) throws IOException {
-        final String name = sourcePath.toFile().getName();
+    public void copyImage(File sourceFile, File targetFile) throws IOException {
+        final String name = sourceFile.getName();
         if(processedImageNames.contains(name)) {
             errorHandler.handleError("Image with name \"%s\" has already been processed!  PSPI Guidelines specify that image names should be unique!", name);
         }
         processedImageNames.add(name);
-        super.copyImage(sourcePath, targetPath);
+        super.copyImage(sourceFile, targetFile);
     }
     
 }

@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 public class FileUtils {
 
@@ -14,8 +15,12 @@ public class FileUtils {
         return instance;
     }
     
-    public boolean makeParentDirectory(File file) {
+    public boolean mkdirs(File file) {
         return file.getParentFile().mkdirs();
+    }
+
+    public boolean mkdirs(Path newImageFilePath) {
+        return mkdirs(newImageFilePath.toFile());
     }
     
     public Path getRelativePath(File currentBaseDir, File newBaseDir, File currentFilePath) {
@@ -69,10 +74,6 @@ public class FileUtils {
         }
     }
 
-    public void makeParentDirectory(Path newImageFilePath) {
-        makeParentDirectory(newImageFilePath.toFile());
-    }
-
     public void assertIsDirectory(File directory) {
         if (!directory.isDirectory()) {
             throw new RuntimeException("Expected directory to exist: " + directory);
@@ -86,6 +87,11 @@ public class FileUtils {
         if(expectedFile.length() == 0) {
             throw new RuntimeException(String.format("Expected file to have size but was empty: %s", expectedFile));
         }
+    }
+
+    public File[] sort(File[] files) {
+        Arrays.sort(files, (f1, f2) -> String.CASE_INSENSITIVE_ORDER.compare(f1.getName(), f2.getName()));
+        return files;
     }
 
 }

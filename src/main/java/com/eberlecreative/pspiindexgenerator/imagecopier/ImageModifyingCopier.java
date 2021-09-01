@@ -1,12 +1,11 @@
 package com.eberlecreative.pspiindexgenerator.imagecopier;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageModifier;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
-
-import java.awt.image.BufferedImage;
 
 public class ImageModifyingCopier implements ImageCopier {
 
@@ -22,10 +21,10 @@ public class ImageModifyingCopier implements ImageCopier {
     }
 
     @Override
-    public void copyImage(Path sourcePath, Path targetPath) throws IOException {
-        BufferedImage image = imageUtils.readImage(sourcePath.toFile());
-        image = imageModifier.modifyImage(sourcePath, image);
-        imageUtils.saveImageCopyMetaData(image, sourcePath, targetPath, compressionQuality);
+    public void copyImage(File sourceFile, File targetFile) throws IOException {
+        BufferedImage image = imageUtils.readImage(sourceFile);
+        image = imageModifier.modifyImage(sourceFile, image);
+        imageUtils.saveImageCopyMetaData(image, sourceFile, targetFile, compressionQuality);
     }
     
 }

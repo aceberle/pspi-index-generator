@@ -15,8 +15,8 @@ import org.apache.commons.cli.ParseException;
 
 import com.eberlecreative.pspiindexgenerator.gui.PspiIndexGeneratorGUI;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.CropAnchors;
-import com.eberlecreative.pspiindexgenerator.pspi.PspiImageSize;
-import com.eberlecreative.pspiindexgenerator.pspi.PspiIndexGenerator;
+import com.eberlecreative.pspiindexgenerator.pspi.generator.PspiIndexGenerator;
+import com.eberlecreative.pspiindexgenerator.pspi.util.PspiImageSize;
 
 public class PspiIndexGeneratorCLI {
 
