@@ -58,7 +58,7 @@ public class PspiIndexGeneratorCLI {
             builder.compressionQuality(Float.parseFloat(cmd.getOptionValue("q")));
         }
         if(cmd.hasOption("d")) {
-            builder.dataFile(cmd.getOptionValue("d"));
+            builder.dataFile(new File(cmd.getOptionValue("d")));
         }
         if(cmd.hasOption("p")) {
             builder.outputFilePattern(cmd.getOptionValue("p"));

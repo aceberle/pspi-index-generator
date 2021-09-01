@@ -80,7 +80,7 @@ public class PspiIndexGenerator {
 
     private boolean forceOutput;
 
-    private String dataFilePath;
+    private File dataFilePath;
 
     public static class Builder {
 
@@ -118,7 +118,7 @@ public class PspiIndexGenerator {
             return this;
         }
 
-        public Builder dataFile(String dataFilePath) {
+        public Builder dataFile(File dataFilePath) {
             instance.dataFilePath = dataFilePath;
             return this;
         }
@@ -305,14 +305,14 @@ public class PspiIndexGenerator {
                 errorHandler.handleError("Unable to locate image number in row information: %s", data);
             }
             try {
-                final long imageNumber = Long.parseLong(rawImageNumber);
+                final long imageNumber = (long) Math.floor(Double.parseDouble(rawImageNumber));
                 if(results.containsKey(imageNumber)) {
                     errorHandler.handleError("Image number %s has been defined in multiple rows!", imageNumber);
                 } else {
                     results.put(imageNumber, data);
                 }
             } catch (NumberFormatException e) {
-                errorHandler.handleError("An exception occured while trying to parse image number string \"%s\": %s", rawImageNumber, e.getMessage());
+                errorHandler.handleError("An exception occured while trying to parse image number string \"%s\": %s", rawImageNumber, e);
             }
         }
         return results;
