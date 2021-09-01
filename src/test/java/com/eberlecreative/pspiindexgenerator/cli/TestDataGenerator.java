@@ -10,11 +10,11 @@ import java.util.Map.Entry;
 
 import javax.imageio.ImageIO;
 
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.CropAnchors;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageModifier;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageModifierFactory;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageSize;
-import com.eberlecreative.pspiindexgenerator.logger.Logger;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
 
@@ -58,7 +58,7 @@ public class TestDataGenerator {
         final BufferedImage sourceImage = imageUtils.readImage(new File("src/test/resources/profile.jpg"));
         final int origWidth = sourceImage.getWidth();
         final int origHeight = sourceImage.getHeight();
-        final Logger noOpLogger = new NoOpLogger();
+        final EventHandler noOpEventHandler = new NoOpEventHandler();
         final ImageModifierFactory modifierFactory = new ImageModifierFactory(CropAnchors.parseCropAnchor("top-middle"));
         if(!targetDir.exists()) {
             targetDir.mkdirs();
@@ -90,7 +90,7 @@ public class TestDataGenerator {
                     g.dispose();
                 } else {
                     modifierFactory.resizeImages(targetSize);
-                    final ImageModifier modifier = modifierFactory.getImageModifier(noOpLogger);
+                    final ImageModifier modifier = modifierFactory.getImageModifier(noOpEventHandler);
                     targetImage = modifier.modifyImage(testImageFile, sourceImage);
                 }
                 ImageIO.write(targetImage, "jpg", testImageFile);

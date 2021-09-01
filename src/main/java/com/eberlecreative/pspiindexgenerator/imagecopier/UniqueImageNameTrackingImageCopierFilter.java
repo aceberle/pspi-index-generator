@@ -5,17 +5,17 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandler;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 
 public class UniqueImageNameTrackingImageCopierFilter extends ImageCopierFilter {
 
-    private final ErrorHandler errorHandler;
+    private final EventHandler eventHandler;
 
     private Set<String> processedImageNames;
 
-    public UniqueImageNameTrackingImageCopierFilter(ImageCopier source, ErrorHandler errorHandler) {
+    public UniqueImageNameTrackingImageCopierFilter(ImageCopier source, EventHandler eventHandler) {
         super(source);
-        this.errorHandler = errorHandler;
+        this.eventHandler = eventHandler;
         this.processedImageNames = new HashSet<>();
     }
 
@@ -23,7 +23,7 @@ public class UniqueImageNameTrackingImageCopierFilter extends ImageCopierFilter 
     public void copyImage(File sourceFile, File targetFile) throws IOException {
         final String name = sourceFile.getName();
         if(processedImageNames.contains(name)) {
-            errorHandler.handleError("Image with name \"%s\" has already been processed!  PSPI Guidelines specify that image names should be unique!", name);
+            eventHandler.error("Image with name \"%s\" has already been processed!  PSPI Guidelines specify that image names should be unique!", name);
         }
         processedImageNames.add(name);
         super.copyImage(sourceFile, targetFile);

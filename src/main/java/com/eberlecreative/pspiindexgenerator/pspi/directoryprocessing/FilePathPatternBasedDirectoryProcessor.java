@@ -10,8 +10,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandler;
-import com.eberlecreative.pspiindexgenerator.logger.Logger;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 import com.eberlecreative.pspiindexgenerator.pspi.fileprocessing.FileProcessor;
 import com.eberlecreative.pspiindexgenerator.record.RecordField;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
@@ -20,18 +19,15 @@ public class FilePathPatternBasedDirectoryProcessor implements DirectoryProcesso
 
     private final FileUtils fileUtils;
     
-    private final Logger logger;
-    
-    private ErrorHandler errorHandler;
+    private EventHandler eventHandler;
     
     private final Pattern imageFolderPattern;
     
     private final Pattern imageFilePattern;
     
-    public FilePathPatternBasedDirectoryProcessor(FileUtils fileUtils, Logger logger, ErrorHandler errorHandler, Pattern imageFolderPattern, Pattern imageFilePattern) {
+    public FilePathPatternBasedDirectoryProcessor(FileUtils fileUtils, EventHandler eventHandler, Pattern imageFolderPattern, Pattern imageFilePattern) {
         this.fileUtils = fileUtils;
-        this.logger = logger;
-        this.errorHandler = errorHandler;
+        this.eventHandler = eventHandler;
         this.imageFolderPattern = imageFolderPattern;
         this.imageFilePattern = imageFilePattern;
     }
@@ -42,22 +38,22 @@ public class FilePathPatternBasedDirectoryProcessor implements DirectoryProcesso
             if(imageFolder.isHidden()) {
                 continue;
             }
-            logger.logInfo("Processing path: " + imageFolder);
+            eventHandler.info("Processing path: " + imageFolder);
             final String imageFolderName = imageFolder.getName();
             final Matcher imageFolderMatcher = imageFolderPattern.matcher(imageFolderName);
             if (!imageFolder.isDirectory()) {
-                errorHandler.handleError("Expected path to be a directory: " + imageFolder);
+                eventHandler.error("Expected path to be a directory: " + imageFolder);
             } else if (!imageFolderMatcher.matches()) {
-                errorHandler.handleError("Encountered unexpected directory name: " + imageFolderName);
+                eventHandler.error("Encountered unexpected directory name: " + imageFolderName);
             } else {
                 for (File imageFile : fileUtils.sort(imageFolder.listFiles())) {
-                    logger.logInfo("Processing image file: " + imageFile);
+                    eventHandler.info("Processing image file: " + imageFile);
                     final String imageFileName = imageFile.getName();
                     final Matcher imageFileMatcher = imageFilePattern.matcher(imageFileName);
                     if (!imageFile.isFile()) {
-                        errorHandler.handleError("Unexpected directory found: " + imageFile);
+                        eventHandler.error("Unexpected directory found: " + imageFile);
                     } else if (!imageFileMatcher.matches()) {
-                        errorHandler.handleError("Encountered unexpected file name: " + imageFileName);
+                        eventHandler.error("Encountered unexpected file name: " + imageFileName);
                     } else {
                         final Map<String, String> fieldValues = getFromMatchers(imageFileMatcher, imageFolderMatcher);
                         fileProcessor.processFile(inputDirectory, outputDirectory, imageFolder.getName(), imageFile, fieldValues);

@@ -6,16 +6,16 @@ import java.util.Collection;
 import java.util.regex.Pattern;
 
 import com.eberlecreative.pspiindexgenerator.datafileparser.DataFileParser;
-import com.eberlecreative.pspiindexgenerator.errorhandler.DefaultErrorHandlerFactory;
-import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandler;
-import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandlerFactory;
+import com.eberlecreative.pspiindexgenerator.eventhandler.DefaultEventHandlerFactory;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandlerFactory;
 import com.eberlecreative.pspiindexgenerator.imagecopier.ImageCopier;
 import com.eberlecreative.pspiindexgenerator.imagecopier.ImageCopierFactory;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.CropAnchor;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.CropAnchors;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageModifierFactory;
-import com.eberlecreative.pspiindexgenerator.logger.DefaultLogger;
 import com.eberlecreative.pspiindexgenerator.logger.Logger;
+import com.eberlecreative.pspiindexgenerator.logger.StreamLogger;
 import com.eberlecreative.pspiindexgenerator.outputfilenameresolver.OutputFileNameResolver;
 import com.eberlecreative.pspiindexgenerator.outputfilenameresolver.OutputFileNameResolverFactory;
 import com.eberlecreative.pspiindexgenerator.pspi.directoryprocessing.DataFileBasedDirectoryProcessor;
@@ -51,9 +51,9 @@ public class PspiIndexGenerator {
     
     private ResourceUtils resourceUtils = ResourceUtils.getInstance();
 
-    private Logger logger = new DefaultLogger();
+    private Logger logger = new StreamLogger();
 
-    private ErrorHandlerFactory errorHandlerFactory = new DefaultErrorHandlerFactory();
+    private EventHandlerFactory eventHandlerFactory = new DefaultEventHandlerFactory();
 
     private IndexRecordFieldsFactory indexRecordFieldsFactory = new IndexRecordFieldsFactory();
 
@@ -85,11 +85,11 @@ public class PspiIndexGenerator {
         }
 
         public Builder verboseLogging(boolean verbose) {
-            return logger(new DefaultLogger(verbose));
+            return logger(new StreamLogger(verbose));
         }
 
         public Builder verboseLogging(boolean verbose, PrintStream out, PrintStream err) {
-            return logger(new DefaultLogger(verbose, out, err));
+            return logger(new StreamLogger(verbose, out, err));
         }
 
         public Builder verboseLogging() {
@@ -101,8 +101,8 @@ public class PspiIndexGenerator {
             return this;
         }
 
-        public Builder errorHandlerFactory(ErrorHandlerFactory errorHandlerFactory) {
-            instance.errorHandlerFactory = errorHandlerFactory;
+        public Builder eventHandlerFactory(EventHandlerFactory eventHandlerFactory) {
+            instance.eventHandlerFactory = eventHandlerFactory;
             return this;
         }
 
@@ -144,7 +144,7 @@ public class PspiIndexGenerator {
         }
 
         public Builder strict(boolean strict) {
-            return errorHandlerFactory(new DefaultErrorHandlerFactory(strict));
+            return eventHandlerFactory(new DefaultEventHandlerFactory(strict));
         }
 
         public Builder strict() {
@@ -183,40 +183,40 @@ public class PspiIndexGenerator {
     }
 
     public void generate(File inputDirectory, File outputDirectory) throws Exception {
-        logger.logInfo("Starting generation...");
+        final EventHandler eventHandler = eventHandlerFactory.getEventHandler(logger);
+        eventHandler.info("Starting generation...");
         fileUtils.assertIsDirectory(inputDirectory);
         validateAndInitOutputDirectory(outputDirectory);
         final File indexFile = new File(outputDirectory, PspiConstants.INDEX_FILE_NAME);
         final Collection<RecordField> recordFields = indexRecordFieldsFactory.getIndexRecordFields();
-        final ErrorHandler errorHandler = errorHandlerFactory.getErrorHandler(logger);
         final OutputFileNameResolver outputFileNameResolver = outputFileNameResolverFactory.getOutputFileNameResolver();
-        final ImageCopier imageCopier = imageCopierFactory.getImageCopier(logger, errorHandler, imageModifierFactory);
-        final DirectoryProcessor processingStrategy = getDirectoryProcessingStrategy(errorHandler);
+        final ImageCopier imageCopier = imageCopierFactory.getImageCopier(eventHandler, imageModifierFactory);
+        final DirectoryProcessor processingStrategy = getDirectoryProcessingStrategy(eventHandler);
         try (RecordWriter indexRecordWriter = indexRecordWriterFactory.getRecordWriter(indexFile, recordFields)) {
             indexRecordWriter.writeHeaders();
-            final FileProcessor fileProcessor = new PspiCopyAndWriteRecordFileProcessor(logger, errorHandler, fileUtils, imageCopier, outputFileNameResolver, imageUtils, indexRecordWriter, recordFields);
+            final FileProcessor fileProcessor = new PspiCopyAndWriteRecordFileProcessor(eventHandler, fileUtils, imageCopier, outputFileNameResolver, imageUtils, indexRecordWriter, recordFields);
             processingStrategy.processDirectory(inputDirectory, outputDirectory, recordFields, fileProcessor);
-            logger.logInfo("Creating COPYRIGHT.TXT file...");
+            eventHandler.info("Creating COPYRIGHT.TXT file...");
             fileUtils.save(resourceUtils.getResourceAsStream("/"+PspiConstants.COPYRIGHT_FILE_NAME), new File(outputDirectory, PspiConstants.COPYRIGHT_FILE_NAME));
-            logger.logInfo("Generation completed!");
+            eventHandler.info("Generation completed!");
         }
-        logger.logInfo("Validating output directory...");
+        eventHandler.info("Validating output directory...");
         validator.validatePspiDirectory(outputDirectory);
-        logger.logInfo("Validation completed!");
+        eventHandler.info("Validation completed!");
     }
 
-    private DirectoryProcessor getDirectoryProcessingStrategy(ErrorHandler errorHandler) {
+    private DirectoryProcessor getDirectoryProcessingStrategy(EventHandler eventHandler) {
         if(dataFilePath == null) {
-            return new FilePathPatternBasedDirectoryProcessor(fileUtils, logger, errorHandler, imageFolderPattern, imageFilePattern);
+            return new FilePathPatternBasedDirectoryProcessor(fileUtils, eventHandler, imageFolderPattern, imageFilePattern);
         }
-        return new DataFileBasedDirectoryProcessor(fileUtils, logger, errorHandler, new DataFileParser(), dataFilePath);
+        return new DataFileBasedDirectoryProcessor(fileUtils, eventHandler, new DataFileParser(), dataFilePath);
     }
 
     private void validateAndInitOutputDirectory(File outputDirectory) {
         if (outputDirectory.exists()) {
             if (outputDirectory.isDirectory() && outputDirectory.listFiles().length > 0) {
                 if (forceOutput) {
-                    logger.logInfo("Cleaning output directory at: " + outputDirectory);
+                    logger.info("Cleaning output directory at: " + outputDirectory);
                     fileUtils.cleanDirectory(outputDirectory);
                 } else {
                     throw new RuntimeException("Output directory is not empty!: " + outputDirectory);

@@ -5,17 +5,17 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
-import com.eberlecreative.pspiindexgenerator.logger.Logger;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 
 public class ResizeImageModifier implements ImageModifier {
 
     private final ImageSize targetSize;
 
-    private final Logger logger;
+    private final EventHandler eventHandler;
 
-    public ResizeImageModifier(ImageSize targetSize, Logger logger) {
+    public ResizeImageModifier(ImageSize targetSize, EventHandler eventHandler) {
         this.targetSize = targetSize;
-        this.logger = logger;
+        this.eventHandler = eventHandler;
     }
 
     @Override
@@ -25,15 +25,15 @@ public class ResizeImageModifier implements ImageModifier {
         final int targetWidth = targetSize.getWidth();
         final int targetHeight = targetSize.getHeight();
         if(origWidth == targetWidth && origHeight == targetHeight) {
-            logger.logInfo("Skipping scaling for image \"%s\"", imageFile.getName());
+            eventHandler.info("Skipping scaling for image \"%s\"", imageFile.getName());
             return origImage;
         }
-        logger.logInfo("Resizing image \"%s\" from %sx%s to %sx%s", imageFile.getName(), origWidth, origHeight, targetWidth, targetHeight);
+        eventHandler.info("Resizing image \"%s\" from %sx%s to %sx%s", imageFile.getName(), origWidth, origHeight, targetWidth, targetHeight);
         final double origRatio = ((double)origWidth) / origHeight;
         final double targetRatio = ((double)targetWidth) / targetHeight;
         //https://stackoverflow.com/a/9090575
         if(!almostEqual(origRatio, targetRatio, 0.001)) {
-            logger.logError("Warning: Original aspect ratio %s does not match target aspect ratio %s, image will be warped! Consider enabling auto-croping!", origRatio, targetRatio);
+            eventHandler.error("Warning: Original aspect ratio %s does not match target aspect ratio %s, image will be warped! Consider enabling auto-croping!", origRatio, targetRatio);
         }
         final Image tmpImage = origImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
         final BufferedImage newImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);

@@ -2,7 +2,7 @@ package com.eberlecreative.pspiindexgenerator.logger;
 
 import java.io.PrintStream;
 
-public class DefaultLogger implements Logger {
+public class StreamLogger implements Logger {
 
     private final boolean verbose;
     
@@ -10,29 +10,29 @@ public class DefaultLogger implements Logger {
     
     private final PrintStream err;
 
-    public DefaultLogger() {
+    public StreamLogger() {
         this(false);
     }
 
-    public DefaultLogger(boolean verbose) {
+    public StreamLogger(boolean verbose) {
         this(verbose, System.out, System.err);
     }
 
-    public DefaultLogger(boolean verbose, PrintStream out, PrintStream err) {
+    public StreamLogger(boolean verbose, PrintStream out, PrintStream err) {
         this.verbose = verbose;
         this.out = out;
         this.err = err;
     }
 
     @Override
-    public void logInfo(String message, Object... objects) {
+    public void info(String message, Object... objects) {
         if(verbose) {
             out.println(String.format(message, objects));
         }
     }
 
     @Override
-    public void logError(String message, Object... objects) {
+    public void error(String message, Object... objects) {
         err.println(String.format(message, objects));
     }
     

@@ -1,9 +1,8 @@
 package com.eberlecreative.pspiindexgenerator.imagecopier;
 
-import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandler;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageModifier;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageModifierFactory;
-import com.eberlecreative.pspiindexgenerator.logger.Logger;
 
 public class ImageCopierFactory {
 
@@ -18,15 +17,15 @@ public class ImageCopierFactory {
         return this;
     }
 
-    public ImageCopier getImageCopier(Logger logger, ErrorHandler errorHandler, ImageModifierFactory imageModifierFactory) {
-        final ImageModifier imageModifier = imageModifierFactory.getImageModifier(logger);
+    public ImageCopier getImageCopier(EventHandler eventHandler, ImageModifierFactory imageModifierFactory) {
+        final ImageModifier imageModifier = imageModifierFactory.getImageModifier(eventHandler);
         ImageCopier rootCopier = null;
         if(imageModifier == null) {
-            rootCopier = new SimpleImageCopier(logger);
+            rootCopier = new SimpleImageCopier(eventHandler);
         } else {
             rootCopier = new ImageModifyingCopier(imageModifier, compressionQuality);
         }
-        return new UniqueImageNameTrackingImageCopierFilter(rootCopier, errorHandler);
+        return new UniqueImageNameTrackingImageCopierFilter(rootCopier, eventHandler);
     }
     
 }

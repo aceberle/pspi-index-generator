@@ -1,9 +1,9 @@
-package com.eberlecreative.pspiindexgenerator.logger;
+package com.eberlecreative.pspiindexgenerator.eventhandler;
 
-public interface Logger {
+public interface EventHandler {
     
     public void info(String message, Object...objects);
-
+    
     public void error(String message, Object...objects);
 
 }

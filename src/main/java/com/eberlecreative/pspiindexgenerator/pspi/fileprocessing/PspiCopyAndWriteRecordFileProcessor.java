@@ -7,9 +7,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.eberlecreative.pspiindexgenerator.errorhandler.ErrorHandler;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 import com.eberlecreative.pspiindexgenerator.imagecopier.ImageCopier;
-import com.eberlecreative.pspiindexgenerator.logger.Logger;
 import com.eberlecreative.pspiindexgenerator.outputfilenameresolver.OutputFileNameResolver;
 import com.eberlecreative.pspiindexgenerator.pspi.util.IndexRecordFields;
 import com.eberlecreative.pspiindexgenerator.record.RecordField;
@@ -21,9 +20,7 @@ public class PspiCopyAndWriteRecordFileProcessor implements FileProcessor {
 
     private static final long MAX_IMAGE_SIZE = (long)1E+7;
     
-    private final Logger logger;
-    
-    private final ErrorHandler errorHandler;
+    private final EventHandler eventHandler;
     
     private final FileUtils fileUtils;
     
@@ -37,9 +34,8 @@ public class PspiCopyAndWriteRecordFileProcessor implements FileProcessor {
 
     private final Collection<RecordField> recordFields;
 
-    public PspiCopyAndWriteRecordFileProcessor(Logger logger, ErrorHandler errorHandler, FileUtils fileUtils, ImageCopier imageCopier, OutputFileNameResolver outputFileNameResolver, ImageUtils imageUtils, RecordWriter indexRecordWriter, Collection<RecordField> recordFields) {
-        this.logger = logger;
-        this.errorHandler = errorHandler;
+    public PspiCopyAndWriteRecordFileProcessor(EventHandler eventHandler, FileUtils fileUtils, ImageCopier imageCopier, OutputFileNameResolver outputFileNameResolver, ImageUtils imageUtils, RecordWriter indexRecordWriter, Collection<RecordField> recordFields) {
+        this.eventHandler = eventHandler;
         this.fileUtils = fileUtils;
         this.imageCopier = imageCopier;
         this.outputFileNameResolver = outputFileNameResolver;
@@ -67,7 +63,7 @@ public class PspiCopyAndWriteRecordFileProcessor implements FileProcessor {
         indexRecord.put(IndexRecordFields.IMAGE_FOLDER, imageFolderName);
         indexRecord.put(IndexRecordFields.IMAGE_FILE_NAME, newImageFile.getName());
         indexRecord.put(IndexRecordFields.IMAGE_SIZE, getImageSize(newImageFile));
-        logger.logInfo("Logging index record: %s", indexRecord);
+        eventHandler.info("Logging index record: %s", indexRecord);
         indexRecordWriter.writeRecord(indexRecord);
     }
     
@@ -80,7 +76,7 @@ public class PspiCopyAndWriteRecordFileProcessor implements FileProcessor {
     private String getImageSize(File imageFile) throws IOException {
         final long fileSize = imageFile.length();
         if(fileSize > MAX_IMAGE_SIZE) {
-            errorHandler.handleError("Invalid image found! Expected size to be less than %s bytes but found size of %s bytes, image at: %s", MAX_IMAGE_SIZE, fileSize, imageFile);
+            eventHandler.error("Invalid image found! Expected size to be less than %s bytes but found size of %s bytes, image at: %s", MAX_IMAGE_SIZE, fileSize, imageFile);
         }
         final BufferedImage bimg = imageUtils.readImage(imageFile);
         final int width = bimg.getWidth();
@@ -92,7 +88,7 @@ public class PspiCopyAndWriteRecordFileProcessor implements FileProcessor {
         }
         final double ratio = ((double) width) / height;
         if (ratio != 0.8) {
-            errorHandler.handleError("Invalid image found! Expected aspect ratio of 0.8 but found %spx / %spx = %s, image at: %s", width, height, ratio, imageFile);
+            eventHandler.error("Invalid image found! Expected aspect ratio of 0.8 but found %spx / %spx = %s, image at: %s", width, height, ratio, imageFile);
         }
         return "OTHER";
     }
