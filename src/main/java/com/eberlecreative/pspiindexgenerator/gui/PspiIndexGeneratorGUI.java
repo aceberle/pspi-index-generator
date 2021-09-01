@@ -21,6 +21,7 @@ import java.util.prefs.Preferences;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -37,10 +38,14 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.eberlecreative.pspiindexgenerator.imagemodifier.CropAnchors;
 import com.eberlecreative.pspiindexgenerator.pspi.PspiImageSize;
@@ -66,6 +71,12 @@ public class PspiIndexGeneratorGUI extends JFrame {
     private static final String PREF_STRICT = "strict";
     private static final String PREF_LAST_INPUT_DIR = "lastInputDir";
     private static final String PREF_LAST_OUTPUT_DIR = "lastOutputDir";
+    private static final String PREF_DATA_SOURCE = "dataSource";
+    private static final String DATA_SOURCE_USE_FILE_NAMES = "Use File Names";
+    private static final String PREF_LAST_DATA_FILE_PATH = "lastDataFilePath";
+    private static final String PREF_OUTPUT_IMAGE_NAME_PATTERN = "outputImageNamePattern";
+    private static final String PREF_DATA_FILE_PATH = "dataFilePath";
+    private static final String PREF_OVERRIDE_IMAGE_NAMES = "overrideImageNames";
     private static final int RADIO_WIDTH = 80;
     private JTextField inputDirText;
     private JTextField outputDirText;
@@ -76,6 +87,10 @@ public class PspiIndexGeneratorGUI extends JFrame {
     private SpinnerNumberModel compressionQualityModel;
     private JSpinner compressionQualitySpinner;
     private JCheckBox forceOutputCheckbox;
+    private JTextField dataFilePathText;
+    private JTextField outputImageNamePatternText;
+    private JCheckBox overrideImageNamesCheckBox;
+    private JButton dataFileBrowseButton;
 
     public PspiIndexGeneratorGUI(Preferences preferences) {
         super("PSPI Index Generator");
@@ -115,7 +130,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
             outputDirText.setText(pathString);
         }));
         
-        getContentPane().setLayout(new MigLayout("", "[85px][312px,grow][69px]", "[][][][][][][][][][][][][]"));
+        getContentPane().setLayout(new MigLayout("", "[85px][312px,grow][69px]", "[][][][][][][][][][][][][][][][][][]"));
         getContentPane().add(inputDirLabel, "cell 0 0,alignx right,aligny center");
         getContentPane().add(inputDirText, "cell 1 0,growx,aligny center");
         getContentPane().add(inputDirBrowseButton, "cell 2 0,alignx left,aligny top");
@@ -209,36 +224,88 @@ public class PspiIndexGeneratorGUI extends JFrame {
         compressionQualitySpinner.setModel(compressionQualityModel);
         getContentPane().add(compressionQualitySpinner, "cell 1 8");
         
+        JRadioButton useFileNamesRadioButton = new JRadioButton(DATA_SOURCE_USE_FILE_NAMES);
+        getContentPane().add(useFileNamesRadioButton, "cell 0 9");
+        
         JLabel imageFolderPatternLabel = new JLabel("Image Folder Pattern:");
-        getContentPane().add(imageFolderPatternLabel, "cell 0 9,alignx trailing");
+        getContentPane().add(imageFolderPatternLabel, "cell 0 10,alignx trailing");
         
         imageFolderPatternText = new JTextField();
         imageFolderPatternLabel.setLabelFor(imageFolderPatternText);
-        getContentPane().add(imageFolderPatternText, "cell 1 9,growx");
+        getContentPane().add(imageFolderPatternText, "cell 1 10,growx");
         imageFolderPatternText.setColumns(10);
         
         JLabel imageFilePatternLabel = new JLabel("Image File Pattern:");
-        getContentPane().add(imageFilePatternLabel, "cell 0 10,alignx trailing");
+        getContentPane().add(imageFilePatternLabel, "cell 0 11,alignx trailing");
         
         imageFilePatternText = new JTextField();
         imageFilePatternLabel.setLabelFor(imageFilePatternText);
-        getContentPane().add(imageFilePatternText, "cell 1 10,growx");
+        getContentPane().add(imageFilePatternText, "cell 1 11,growx");
         imageFilePatternText.setColumns(10);
         
+        JRadioButton useDataFileRadioButton = new JRadioButton("Use Data File");
+        getContentPane().add(useDataFileRadioButton, "cell 0 12");
+        
+        addRadioButtonGroup(PREF_DATA_SOURCE, useFileNamesRadioButton, useDataFileRadioButton);
+        addListenerToRadioButtonGroup(PREF_DATA_SOURCE, radio -> {
+            final String selectedDataSource = radio.getText();
+            preferences.put(PREF_DATA_SOURCE, selectedDataSource);
+            if(DATA_SOURCE_USE_FILE_NAMES.equalsIgnoreCase(selectedDataSource)) {
+                enable(imageFolderPatternText, imageFilePatternText);
+                disable(dataFilePathText, dataFileBrowseButton);
+            } else {
+                disable(imageFolderPatternText, imageFilePatternText);
+                enable(dataFilePathText, dataFileBrowseButton);
+            }
+        });
+        
+        dataFilePathText = new JTextField();
+        dataFilePathText.setColumns(10);
+        getContentPane().add(dataFilePathText, "cell 1 13,growx");
+        
+        dataFileBrowseButton = new JButton("Browse");
+        getContentPane().add(dataFileBrowseButton, "cell 2 13");
+        dataFileBrowseButton.addActionListener(chooseExcelFile(() -> dataFilePathText.getText(), path -> {
+            final String pathString = path.getAbsolutePath();
+            preferences.put(PREF_LAST_DATA_FILE_PATH, pathString);
+            dataFilePathText.setText(pathString);
+        }));
+        
+        JLabel overrideImageNamesLabel = new JLabel("Override Output Image Names:");
+        getContentPane().add(overrideImageNamesLabel, "cell 0 14");
+        
+        overrideImageNamesCheckBox = new JCheckBox("");
+        overrideImageNamesLabel.setLabelFor(overrideImageNamesCheckBox);
+        getContentPane().add(overrideImageNamesCheckBox, "cell 1 14");
+        overrideImageNamesCheckBox.addChangeListener(event -> {
+            if(overrideImageNamesCheckBox.isSelected()) {
+                enable(outputImageNamePatternText);
+            } else {
+                disable(outputImageNamePatternText);
+            }
+        });
+        
+        JLabel imageNamePatternLabel = new JLabel("Output Image Name Pattern:");
+        getContentPane().add(imageNamePatternLabel, "cell 0 15,alignx trailing");
+        
+        outputImageNamePatternText = new JTextField();
+        getContentPane().add(outputImageNamePatternText, "cell 1 15,growx");
+        outputImageNamePatternText.setColumns(10);
+        
         JButton savePreferencesButton = new JButton("Save Settings");
-        getContentPane().add(savePreferencesButton, "flowx,cell 1 11 2 1,alignx right");
+        getContentPane().add(savePreferencesButton, "flowx,cell 1 16 2 1,alignx right");
         savePreferencesButton.addActionListener(e -> {
             savePreferences(preferences);
         });
         
         JButton resetPreferencesButton = new JButton("Reload Settings");
-        getContentPane().add(resetPreferencesButton, "cell 1 11 2 1,alignx right");
+        getContentPane().add(resetPreferencesButton, "cell 1 16 2 1,alignx right");
         resetPreferencesButton.addActionListener(e -> {
             resetPreferences(preferences);
         });
         
         JButton clearSettingsButton = new JButton("Clear Settings");
-        getContentPane().add(clearSettingsButton, "cell 1 11 2 1,alignx right");
+        getContentPane().add(clearSettingsButton, "cell 1 16 2 1,alignx right");
         clearSettingsButton.addActionListener(e -> {
             clearPreferences(preferences);
             resetPreferences(preferences);
@@ -251,10 +318,10 @@ public class PspiIndexGeneratorGUI extends JFrame {
         final JTextPane consoleTextPane = new JTextPane();
         final JScrollPane consoleScrollPane = new JScrollPane(consoleTextPane);
         consolePanel.add(consoleScrollPane, BorderLayout.CENTER);
-        consoleDialog.add(consolePanel);
+        consoleDialog.getContentPane().add(consolePanel);
         
-        JButton generateButton = new JButton("Generate PSPI Index");
-        getContentPane().add(generateButton, "cell 1 12 2 1,alignx right");
+        final JButton generateButton = new JButton("Generate PSPI Index");
+        getContentPane().add(generateButton, "cell 1 17 2 1,alignx right");
         final JFrame instance = this;
         generateButton.addActionListener(e -> {
             consoleDialog.setLocationRelativeTo(instance);
@@ -282,7 +349,20 @@ public class PspiIndexGeneratorGUI extends JFrame {
                 builder.resizeImages(PspiImageSize.fromString(selectedResize));
             }
             builder.compressionQuality(compressionQualityModel.getNumber().floatValue() / 100);
-            
+            final String selectedDataSource = getSelectedRadioFromGroup(PREF_DATA_SOURCE);
+            if(!DATA_SOURCE_USE_FILE_NAMES.equals(selectedDataSource)) {
+                final String dataFilePath = dataFilePathText.getText();
+                preferences.put(PREF_DATA_FILE_PATH, dataFilePath);
+                builder.dataFile(new File(dataFilePath));
+            }
+            if(overrideImageNamesCheckBox.isSelected()) {
+                final String text = outputImageNamePatternText.getText();
+                if(StringUtils.isBlank(text)) {
+                    JOptionPane.showMessageDialog(this, "Expected Output Image Name Pattern to be provided!", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                builder.outputFilePattern(text);
+            }
             final PspiIndexGenerator generator = builder.build();
             final String inputDirPath = inputDirText.getText();
             preferences.put(PREF_LAST_INPUT_DIR, inputDirPath);
@@ -309,6 +389,18 @@ public class PspiIndexGeneratorGUI extends JFrame {
         resetPreferences(preferences);
         
         pack();
+    }
+    
+    private static void enable(JComponent...comps) {
+        for(JComponent comp : comps) {
+            comp.setEnabled(true);
+        }
+    }
+    
+    private static void disable(JComponent...comps) {
+        for(JComponent comp : comps) {
+            comp.setEnabled(false);
+        }
     }
 
     private String appendDimensions(String orig, PspiImageSize imageSize) {
@@ -340,23 +432,34 @@ public class PspiIndexGeneratorGUI extends JFrame {
     }
 
     private void resetPreferences(Preferences preferences) {
-        imageFilePatternText.setText(preferences.get(PREF_IMAGE_FILE_PATTERN, PspiIndexGenerator.DEFAULT_IMAGE_FILE_PATTERN));
-        imageFolderPatternText.setText(preferences.get(PREF_IMAGE_FOLDER_PATTERN, PspiIndexGenerator.DEFAULT_IMAGE_FOLDER_PATTERN));
         strictCheckBox.setSelected(preferences.getBoolean(PREF_STRICT, false));
+        final boolean isOverrideImageNamesSelected = preferences.getBoolean(PREF_OVERRIDE_IMAGE_NAMES, false);
+        overrideImageNamesCheckBox.setSelected(isOverrideImageNamesSelected);
+        outputImageNamePatternText.setText(preferences.get(PREF_OUTPUT_IMAGE_NAME_PATTERN, ""));
+        outputImageNamePatternText.setEnabled(isOverrideImageNamesSelected);
         forceOutputCheckbox.setSelected(preferences.getBoolean(PREF_FORCE_OUTPUT, true));
         compressionQualityModel.setValue(preferences.getFloat(PREF_COMPRESSION_QUALITY, PspiIndexGenerator.DEFAULT_COMPRESSION_QUALITY * 100));
         resetRadioGroupValue(preferences, PREF_CROP_ANCHOR, PspiIndexGenerator.DEFAULT_CROP_ANCHOR);
         resetRadioGroupValue(preferences, PREF_RESIZE, RESIZE_NO_RESIZE);
+        resetRadioGroupValue(preferences, PREF_DATA_SOURCE, DATA_SOURCE_USE_FILE_NAMES);
+        imageFilePatternText.setText(preferences.get(PREF_IMAGE_FILE_PATTERN, PspiIndexGenerator.DEFAULT_IMAGE_FILE_PATTERN));
+        imageFolderPatternText.setText(preferences.get(PREF_IMAGE_FOLDER_PATTERN, PspiIndexGenerator.DEFAULT_IMAGE_FOLDER_PATTERN));
+        dataFilePathText.setText(preferences.get(PREF_DATA_FILE_PATH, ""));
+        
     }
 
     private void savePreferences(Preferences preferences) {
-        preferences.put(PREF_IMAGE_FILE_PATTERN, imageFilePatternText.getText());
-        preferences.put(PREF_IMAGE_FOLDER_PATTERN, imageFolderPatternText.getText());
         preferences.putBoolean(PREF_STRICT, strictCheckBox.isSelected());
+        preferences.putBoolean(PREF_OVERRIDE_IMAGE_NAMES, overrideImageNamesCheckBox.isSelected());
+        preferences.put(PREF_OUTPUT_IMAGE_NAME_PATTERN, outputImageNamePatternText.getText());
         preferences.putBoolean(PREF_FORCE_OUTPUT, forceOutputCheckbox.isSelected());
         preferences.putFloat(PREF_COMPRESSION_QUALITY, compressionQualityModel.getNumber().floatValue());
         saveRadioGroupValue(preferences, PREF_CROP_ANCHOR);
         saveRadioGroupValue(preferences, PREF_RESIZE);
+        saveRadioGroupValue(preferences, PREF_DATA_SOURCE);
+        preferences.put(PREF_IMAGE_FILE_PATTERN, imageFilePatternText.getText());
+        preferences.put(PREF_IMAGE_FOLDER_PATTERN, imageFolderPatternText.getText());
+        preferences.put(PREF_DATA_FILE_PATH, dataFilePathText.getText());
         flush(preferences);
     }
 
@@ -435,10 +538,21 @@ public class PspiIndexGeneratorGUI extends JFrame {
     }
     
     private ActionListener chooseDirectory(Supplier<String> startAtSupplier, Consumer<File> textConsumer) {
+        return getFileChooserActionListener(startAtSupplier, textConsumer, JFileChooser.DIRECTORIES_ONLY, null);
+    }
+    
+    private ActionListener chooseExcelFile(Supplier<String> startAtSupplier, Consumer<File> textConsumer) {
+        return getFileChooserActionListener(startAtSupplier, textConsumer, JFileChooser.FILES_ONLY, new FileNameExtensionFilter("Excel Spreadsheet (*.xslx)", "xlsx"));
+    }
+
+    private ActionListener getFileChooserActionListener(Supplier<String> startAtSupplier, Consumer<File> textConsumer, final int fileSelectionMode, final FileFilter fileFilter) {
         return e -> {
             final String startAt = startAtSupplier.get();
-            JFileChooser fileChooser = new JFileChooser(startAt.length() > 0 ? new File(startAt) : null);
-            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            final JFileChooser fileChooser = new JFileChooser(startAt.length() > 0 ? new File(startAt) : null);
+            fileChooser.setFileSelectionMode(fileSelectionMode);
+            if(fileFilter != null) {
+                fileChooser.setFileFilter(fileFilter);
+            }
             int option = fileChooser.showOpenDialog(this);
             if (option == JFileChooser.APPROVE_OPTION) {
                 textConsumer.accept(fileChooser.getSelectedFile());
