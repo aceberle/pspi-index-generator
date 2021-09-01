@@ -243,18 +243,18 @@ public class PspiIndexGenerator {
                         errorHandler.handleError("Encountered unexpected file name \"%s\" while processing file: %s", imageFileName, file);
                     } else {
                         final Long imageNumber = Long.parseLong(imageFileMatcher.group(1));
-                        final Map<String, String> rowData = dataByImageNumber.get(imageNumber);
-                        updateNames(rowData);
-                        final Path newImageFilePath = targetFilePathResolver.getTargetFilePath(inputDirectory, imageOutputDirectory, file, rowData);
-                        fileUtils.makeParentDirectory(newImageFilePath);
-                        imageCopier.copyImage(file.toPath(), newImageFilePath);
-                        if(rowData == null) {
+                        final Map<String, String> fieldValues = dataByImageNumber.get(imageNumber);
+                        updateNames(fieldValues);
+                        if(fieldValues == null) {
                             errorHandler.handleError("Could not find row data for image number %s while processing image file: %s", imageNumber, file);
                         } else {
+                            final Path newImageFilePath = targetFilePathResolver.getTargetFilePath(inputDirectory, imageOutputDirectory, file, fieldValues);
+                            fileUtils.makeParentDirectory(newImageFilePath);
+                            imageCopier.copyImage(file.toPath(), newImageFilePath);
                             final Map<String, String> indexRecord = new HashMap<>();
                             for (RecordField field : recordFields) {
                                 final String fieldName = field.getName();
-                                final String valueFromMatchers = rowData.get(fieldName);
+                                final String valueFromMatchers = fieldValues.get(fieldName);
                                 if (valueFromMatchers != null) {
                                     indexRecord.put(fieldName, valueFromMatchers);
                                 }
@@ -344,7 +344,7 @@ public class PspiIndexGenerator {
                         } else {
                             final Map<String, String> fieldValues = getFromMatchers(imageFileMatcher, imageFolderMatcher);
                             final Path newImageFilePath = targetFilePathResolver.getTargetFilePath(inputDirectory, outputDirectory, imageFile, fieldValues);
-                            fileUtils.makeParentDirectory(newImageFilePath.toFile());
+                            fileUtils.makeParentDirectory(newImageFilePath);
                             imageCopier.copyImage(imageFile.toPath(), newImageFilePath);
                             final Map<String, String> indexRecord = new HashMap<>();
                             for (RecordField field : recordFields) {
