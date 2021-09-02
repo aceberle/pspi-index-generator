@@ -83,7 +83,7 @@ public class PspiIndexGeneratorCLI {
         }
         final String header = buffer.toString();
         final String footer = "Please report issues to aceberle@gmail.com";
-        formatter.printHelp(cmdLineSyntax, header, options, footer, true);
+        formatter.printHelp(125, cmdLineSyntax, header, options, footer, true);
     }
 
     private static Options makeOptions() {
