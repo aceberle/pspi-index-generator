@@ -219,7 +219,13 @@ public class PspiIndexGenerator {
                     logger.info("Cleaning output directory at: " + outputDirectory);
                     fileUtils.cleanDirectory(outputDirectory);
                 } else {
-                    throw new OutputDirectoryIsNotEmptyException(outputDirectory);
+                    try {
+                        validator.validatePspiDirectory(outputDirectory);
+                    } catch(Exception e) {
+                        // ignore reason for being invalid pspi directory
+                        throw new OutputDirectoryIsNotEmptyException(outputDirectory);
+                    }
+                    throw new OutputDirectoryContainsValidPspiPackageException(outputDirectory);
                 }
             } else if (outputDirectory.isFile()) {
                 throw new RuntimeException("Output directory path points to a file!: " + outputDirectory);

@@ -21,6 +21,7 @@ import com.arakelian.faker.model.Person;
 import com.arakelian.faker.service.RandomData;
 import com.arakelian.faker.service.RandomPerson;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageSize;
+import com.eberlecreative.pspiindexgenerator.pspi.generator.OutputDirectoryContainsValidPspiPackageException;
 import com.eberlecreative.pspiindexgenerator.pspi.generator.OutputDirectoryIsNotEmptyException;
 import com.eberlecreative.pspiindexgenerator.pspi.util.PspiImageSize;
 
@@ -202,7 +203,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
     
     @Test
-    public void specifyThatExceptionIsThrownIfOutputDirectoryAlreadyHasFiles() {
+    public void specifyThatOutputDirectoryContainsValidPspiPackageExceptionIsThrownIfOutputDirectoryAlreadyHasValidPspiFiles() {
         givenCleanDirectoryName("volume11");
         givenTestImage("001.jpg", PspiImageSize.SMALL);
         givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
@@ -214,7 +215,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
         givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
         whenTestDataIsGeneratedAndMainIsExecuted();
-        thenExceptionIsThrown(OutputDirectoryIsNotEmptyException.class, String.format("Output directory is not empty!: %s", outputDirectory.getAbsolutePath()));
+        thenExceptionIsThrown(OutputDirectoryContainsValidPspiPackageException.class, String.format("Output directory already contains a valid PSPI package!: %s", outputDirectory.getAbsolutePath()));
     }
     
     @Test
@@ -235,6 +236,41 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thenActualIndexFileContentsMatchExpected();
     }
     
+    @Test
+    public void specifyThatOutputDirectoryIsNotEmptyExceptionIsThrownWhenOutputDirectoryExistsAndIsNotEmpty() {
+        givenCleanDirectoryName("volume13");
+        givenOutputDirectoryExistsAndIsNotEmpty();
+        givenInputDirectory("volume13a");
+        givenTestImage("002.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenExceptionIsThrown(OutputDirectoryIsNotEmptyException.class, String.format("Output directory is not empty!: %s", outputDirectory.getAbsolutePath()));
+    }
+    
+    @Test
+    public void specifyThatForceOutputResultsInSecondRunWinningWhenOutputDirectoryExistsAndIsNotEmpty() {
+        givenCleanDirectoryName("volume14");
+        givenOutputDirectoryExistsAndIsNotEmpty();
+        givenInputDirectory("volume14a");
+        givenTestImage("002.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
+        givenOutputForced();
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenNoExceptionIsThrown();
+        thenActualIndexFileContentsMatchExpected();
+    }
+    
+    private void givenOutputDirectoryExistsAndIsNotEmpty() {
+        try {
+            outputDirectory.mkdirs();
+            new File(outputDirectory, "test.txt").createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void givenOutputForced() {
         this.forceOutput = true;
     }
