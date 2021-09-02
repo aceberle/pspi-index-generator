@@ -11,12 +11,12 @@ public class UniqueImageNameTrackingImageCopierFilter extends ImageCopierFilter 
 
     private final EventHandler eventHandler;
 
-    private Set<String> processedImageNames;
+    private final Set<String> processedImageNames;
 
-    public UniqueImageNameTrackingImageCopierFilter(ImageCopier source, EventHandler eventHandler) {
+    public UniqueImageNameTrackingImageCopierFilter(ImageCopier source, EventHandler eventHandler, Set<String> processedImageNames) {
         super(source);
         this.eventHandler = eventHandler;
-        this.processedImageNames = new HashSet<>();
+        this.processedImageNames = processedImageNames == null ? new HashSet<>() : new HashSet<>(processedImageNames);
     }
 
     @Override

@@ -68,6 +68,8 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private String currentDirectoryName;
 
     private boolean forceOutput;
+
+    private boolean appendOutput;
     
     @Before
     public void init() {
@@ -80,6 +82,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         imageSize = null;
         dataFile = null;
         forceOutput = false;
+        appendOutput = false;
     }
     
     @Test
@@ -219,7 +222,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
     
     @Test
-    public void specifyThatForceOutputResultsInSecondRunWinningIfOutputDirectoryAlreadyHasFiles() {
+    public void specifyThatForceOutputResultsInSecondRunWinningIfOutputDirectoryAlreadyHasValidPspiFiles() {
         givenCleanDirectoryName("volume12");
         givenTestImage("001.jpg", PspiImageSize.SMALL);
         givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
@@ -262,6 +265,29 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thenActualIndexFileContentsMatchExpected();
     }
     
+    @Test
+    public void specifyThatAppendOutputResultsInSecondRunAppendingIfOutputDirectoryAlreadyHasFiles() {
+        givenCleanDirectoryName("volume15");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenNoExceptionIsThrown();
+        givenInputDirectory("volume15a");
+        givenTestImage("002.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
+        givenOutputFileFormat("<lastName>_<firstName>.jpg");
+        givenOutputAppended();
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenNoExceptionIsThrown();
+        thenActualIndexFileContentsMatchExpected();
+    }
+    
+    private void givenOutputAppended() {
+        this.appendOutput = true;
+    }
+
     private void givenOutputDirectoryExistsAndIsNotEmpty() {
         try {
             outputDirectory.mkdirs();
@@ -404,6 +430,9 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         }
         if(forceOutput) {
             commandArguments.add("-f");
+        }
+        if(appendOutput) {
+            commandArguments.add("-a");
         }
         thrownException = null;
         try {

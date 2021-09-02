@@ -3,6 +3,7 @@ package com.eberlecreative.pspiindexgenerator.pspi.generator;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.eberlecreative.pspiindexgenerator.datafileparser.DataFileParser;
@@ -72,6 +73,8 @@ public class PspiIndexGenerator {
     private PspiDirectoryValidator validator = new PspiDirectoryValidator();
 
     private boolean forceOutput;
+    
+    private boolean appendOutput;
 
     private File dataFilePath;
 
@@ -143,6 +146,15 @@ public class PspiIndexGenerator {
             return forceOutput(true);
         }
 
+        public Builder appendOutput(boolean appendOutput) {
+            instance.appendOutput = appendOutput;
+            return this;
+        }
+
+        public Builder appendOutput() {
+            return appendOutput(true);
+        }
+
         public Builder strict(boolean strict) {
             return eventHandlerFactory(new DefaultEventHandlerFactory(strict));
         }
@@ -186,14 +198,15 @@ public class PspiIndexGenerator {
         final EventHandler eventHandler = eventHandlerFactory.getEventHandler(logger);
         eventHandler.info("Starting generation...");
         fileUtils.assertIsDirectory(inputDirectory);
-        validateAndInitOutputDirectory(outputDirectory);
+        final Set<String> existingFileNames = validateAndInitOutputDirectory(outputDirectory);
+        final boolean doAppend = existingFileNames != null;
         final File indexFile = new File(outputDirectory, PspiConstants.INDEX_FILE_NAME);
         final Collection<RecordField> recordFields = indexRecordFieldsFactory.getIndexRecordFields();
         final OutputFileNameResolver outputFileNameResolver = outputFileNameResolverFactory.getOutputFileNameResolver();
-        final ImageCopier imageCopier = imageCopierFactory.getImageCopier(eventHandler, imageModifierFactory);
+        final ImageCopier imageCopier = imageCopierFactory.getImageCopier(eventHandler, imageModifierFactory, existingFileNames);
         final DirectoryProcessor processingStrategy = getDirectoryProcessingStrategy(eventHandler);
         try (RecordWriter indexRecordWriter = indexRecordWriterFactory.getRecordWriter(indexFile, recordFields)) {
-            indexRecordWriter.writeHeaders();
+            indexRecordWriter.initializeFile(doAppend);
             final FileProcessor fileProcessor = new PspiCopyAndWriteRecordFileProcessor(eventHandler, fileUtils, imageCopier, outputFileNameResolver, imageUtils, indexRecordWriter, recordFields);
             processingStrategy.processDirectory(inputDirectory, outputDirectory, recordFields, fileProcessor);
             eventHandler.info("Creating COPYRIGHT.TXT file...");
@@ -212,26 +225,32 @@ public class PspiIndexGenerator {
         return new DataFileBasedDirectoryProcessor(fileUtils, eventHandler, new DataFileParser(), dataFilePath);
     }
 
-    private void validateAndInitOutputDirectory(File outputDirectory) {
+    private Set<String> validateAndInitOutputDirectory(File outputDirectory) {
         if (outputDirectory.exists()) {
             if (outputDirectory.isDirectory() && outputDirectory.listFiles().length > 0) {
                 if (forceOutput) {
                     logger.info("Cleaning output directory at: " + outputDirectory);
                     fileUtils.cleanDirectory(outputDirectory);
                 } else {
+                    Set<String> existingFileNames = null;
                     try {
-                        validator.validatePspiDirectory(outputDirectory);
+                        existingFileNames = validator.validatePspiDirectory(outputDirectory);
                     } catch(Exception e) {
                         // ignore reason for being invalid pspi directory
                         throw new OutputDirectoryIsNotEmptyException(outputDirectory);
                     }
-                    throw new OutputDirectoryContainsValidPspiPackageException(outputDirectory);
+                    if(appendOutput) {
+                        return existingFileNames;
+                    } else {
+                        throw new OutputDirectoryContainsValidPspiPackageException(outputDirectory);
+                    }
                 }
             } else if (outputDirectory.isFile()) {
                 throw new RuntimeException("Output directory path points to a file!: " + outputDirectory);
             }
         }
         outputDirectory.mkdirs();
+        return null;
     }
 
 }

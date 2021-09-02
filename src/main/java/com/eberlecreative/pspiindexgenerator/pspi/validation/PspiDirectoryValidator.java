@@ -3,6 +3,8 @@ package com.eberlecreative.pspiindexgenerator.pspi.validation;
 import java.io.File;
 import java.io.FileReader;
 import java.io.Reader;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVFormat.Builder;
@@ -15,7 +17,8 @@ public class PspiDirectoryValidator {
     
     private FileUtils fileUtils = FileUtils.getInstance();
 
-    public void validatePspiDirectory(File directory) {
+    public Set<String> validatePspiDirectory(File directory) {
+        final Set<String> existingFileNames = new HashSet<>();
         try {
             fileUtils.assertIsDirectory(directory);
             final File copyrightFile = new File(directory, PspiConstants.COPYRIGHT_FILE_NAME);
@@ -34,8 +37,10 @@ public class PspiDirectoryValidator {
                     final String name = record.get("Image File Name");
                     final File expectedFile = new File(directory, String.format("%s/%s", folder, name));
                     fileUtils.assertIsFileWithSize(expectedFile);
+                    existingFileNames.add(name);
                 }
             }
+            return existingFileNames;
         } catch (InvalidPspiDirectoryException e) {
             throw e;
         } catch (Exception e) {

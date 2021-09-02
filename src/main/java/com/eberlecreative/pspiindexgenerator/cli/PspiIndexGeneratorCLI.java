@@ -47,7 +47,8 @@ public class PspiIndexGeneratorCLI {
         final PspiIndexGenerator.Builder builder = new PspiIndexGenerator.Builder()
                                                     .verboseLogging(cmd.hasOption("v"))
                                                     .strict(cmd.hasOption("s"))
-                                                    .forceOutput(cmd.hasOption("f"));
+                                                    .forceOutput(cmd.hasOption("f"))
+                                                    .appendOutput(cmd.hasOption("a"));
         if(cmd.hasOption("r")) {
             builder.resizeImages(PspiImageSize.fromString(cmd.getOptionValue("r")));
             if(cmd.hasOption("c")) {
@@ -94,6 +95,7 @@ public class PspiIndexGeneratorCLI {
         options.addOption(Option.builder("p").longOpt("output-pattern").hasArg().argName("outputPattern").desc("Change output file names").build());
         options.addOption(Option.builder("v").longOpt("verbose").desc("Enables verbose logging").build());
         options.addOption(Option.builder("f").longOpt("force").desc("Force overwrite of existing output directory").build());
+        options.addOption(Option.builder("a").longOpt("append").desc("Append data to existing PSPI output directory").build());
         options.addOption(Option.builder("s").longOpt("strict").desc("Fails on unexpected files").build());
         options.addOption(Option.builder("r")
                                     .longOpt("resize-images")
