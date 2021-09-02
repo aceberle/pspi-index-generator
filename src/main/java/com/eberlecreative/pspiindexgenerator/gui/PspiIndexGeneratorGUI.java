@@ -48,6 +48,8 @@ import javax.swing.text.StyleContext;
 import org.apache.commons.lang3.StringUtils;
 
 import com.eberlecreative.pspiindexgenerator.imagemodifier.CropAnchors;
+import com.eberlecreative.pspiindexgenerator.pspi.generator.OutputDirectoryContainsValidPspiPackageException;
+import com.eberlecreative.pspiindexgenerator.pspi.generator.OutputDirectoryIsNotEmptyException;
 import com.eberlecreative.pspiindexgenerator.pspi.generator.PspiIndexGenerator;
 import com.eberlecreative.pspiindexgenerator.pspi.util.PspiImageSize;
 
@@ -59,7 +61,6 @@ public class PspiIndexGeneratorGUI extends JFrame {
      */
     private static final long serialVersionUID = -7845485644403871508L;
 
-    private static final String PREF_FORCE_OUTPUT = "forceOutput";
     private static final String PREF_COMPRESSION_QUALITY = "compressionQuality";
     private static final String RESIZE_NO_RESIZE = "No Resize";
     private static final String CROP_NO_CROP = "No Crop";
@@ -86,7 +87,6 @@ public class PspiIndexGeneratorGUI extends JFrame {
     private Map<String, List<JRadioButton>> radioButtonGroupsByName = new HashMap<>();
     private SpinnerNumberModel compressionQualityModel;
     private JSpinner compressionQualitySpinner;
-    private JCheckBox forceOutputCheckbox;
     private JTextField dataFilePathText;
     private JTextField outputImageNamePatternText;
     private JCheckBox overrideImageNamesCheckBox;
@@ -144,13 +144,6 @@ public class PspiIndexGeneratorGUI extends JFrame {
         strictCheckBox = new JCheckBox("");
         strictLabel.setLabelFor(strictCheckBox);
         getContentPane().add(strictCheckBox, "cell 1 2");
-        
-        JLabel forceOutputLabel = new JLabel("Force output:");
-        getContentPane().add(forceOutputLabel, "cell 0 3,alignx right");
-        
-        forceOutputCheckbox = new JCheckBox("");
-        forceOutputLabel.setLabelFor(forceOutputCheckbox);
-        getContentPane().add(forceOutputCheckbox, "cell 1 3");
         
         JLabel resizeLabel = new JLabel("Resize Images:");
         getContentPane().add(resizeLabel, "cell 0 4,alignx right");
@@ -325,9 +318,8 @@ public class PspiIndexGeneratorGUI extends JFrame {
         final JFrame instance = this;
         generateButton.addActionListener(e -> {
             consoleDialog.setLocationRelativeTo(instance);
-            consoleDialog.setLocation(200, 665);
             consoleDialog.setSize(750, 300);
-            consoleTextPane.setText("");
+            clearTextPane(consoleTextPane);
             final PrintStream err = new PrintStream(new StringConsumingOutputStream(string -> {
                 appendToPane(consoleTextPane, string, Color.RED);
             }));
@@ -337,7 +329,6 @@ public class PspiIndexGeneratorGUI extends JFrame {
             final PspiIndexGenerator.Builder builder = new PspiIndexGenerator.Builder()
                     .verboseLogging(true, out, err)
                     .strict(strictCheckBox.isSelected())
-                    .forceOutput(forceOutputCheckbox.isSelected())
                     .imageFolderPattern(imageFolderPatternText.getText())
                     .imageFilePattern(imageFilePatternText.getText());
             final String selectedCrop = getSelectedRadioFromGroup(PREF_CROP_ANCHOR);
@@ -363,7 +354,6 @@ public class PspiIndexGeneratorGUI extends JFrame {
                 }
                 builder.outputFilePattern(text);
             }
-            final PspiIndexGenerator generator = builder.build();
             final String inputDirPath = inputDirText.getText();
             preferences.put(PREF_LAST_INPUT_DIR, inputDirPath);
             final File inputDirectory = new File(inputDirPath);
@@ -375,11 +365,30 @@ public class PspiIndexGeneratorGUI extends JFrame {
             final ExecutorService pool = Executors.newCachedThreadPool();
             pool.execute(() -> {
                 try {
-                    generator.generate(inputDirectory, outputDirectory);
-                    JOptionPane.showMessageDialog(this, "Generation is complete!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } catch (Exception ex) {
+                    builder.build().generate(inputDirectory, outputDirectory);
+                    showSuccessfulGenerationMessageBox();
+                } catch (OutputDirectoryIsNotEmptyException ex) {
                     ex.printStackTrace(err);
-                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    final Object[] options = { "Delete files and proceed", "Cancel" };
+                    final int rc = JOptionPane.showOptionDialog(this, "The output directory is not empty! Are you sure that you want to proceed?", "Warning", JOptionPane.WARNING_MESSAGE, 0, null, options, options[1]);
+                    if(rc == 0) {
+                        cleanOutputAndGenerate(consoleTextPane, err, builder, inputDirectory, outputDirectory);
+                    } else {
+                        consoleDialog.setVisible(false);
+                    }
+                } catch (OutputDirectoryContainsValidPspiPackageException ex) {
+                    ex.printStackTrace(err);
+                    final Object[] options = { "Add to existing PSPI Files", "Delete existing files and proceed", "Cancel" };
+                    final int rc = JOptionPane.showOptionDialog(this, "The output directory alreadt contains PSPI files! Please choose an option:", "Warning", JOptionPane.WARNING_MESSAGE, 0, null, options, options[2]);
+                    if(rc == 0) {
+                        generateAndAppendOutput(consoleTextPane, err, builder, inputDirectory, outputDirectory);
+                    } else if (rc == 1) {
+                        cleanOutputAndGenerate(consoleTextPane, err, builder, inputDirectory, outputDirectory);
+                    } else {
+                        consoleDialog.setVisible(false);
+                    }
+                } catch (Exception ex) {
+                    printErrorAndShowErrorMessageBox(err, ex);
                 } finally {
                     generateButton.setEnabled(true);
                 }
@@ -390,7 +399,40 @@ public class PspiIndexGeneratorGUI extends JFrame {
         
         pack();
     }
-    
+
+    private void generateAndAppendOutput(final JTextPane consoleTextPane, final PrintStream err, final PspiIndexGenerator.Builder builder, final File inputDirectory, final File outputDirectory) {
+        try {
+            clearTextPane(consoleTextPane);
+            builder.appendOutput().build().generate(inputDirectory, outputDirectory);
+            showSuccessfulGenerationMessageBox();
+        } catch (Exception ex) {
+            printErrorAndShowErrorMessageBox(err, ex);
+        }
+    }
+
+    private void cleanOutputAndGenerate(final JTextPane consoleTextPane, final PrintStream err, final PspiIndexGenerator.Builder builder, final File inputDirectory, final File outputDirectory) {
+        try {
+            clearTextPane(consoleTextPane);
+            builder.forceOutput().build().generate(inputDirectory, outputDirectory);
+            showSuccessfulGenerationMessageBox();
+        } catch (Exception ex) {
+            printErrorAndShowErrorMessageBox(err, ex);
+        }
+    }
+
+    private void printErrorAndShowErrorMessageBox(final PrintStream err, Exception ex) {
+        ex.printStackTrace(err);
+        JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void clearTextPane(final JTextPane consoleTextPane) {
+        consoleTextPane.setText("");
+    }
+
+    private void showSuccessfulGenerationMessageBox() {
+        JOptionPane.showMessageDialog(this, "Generation is complete!", "Success", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private static void enable(JComponent...comps) {
         for(JComponent comp : comps) {
             comp.setEnabled(true);
@@ -437,7 +479,6 @@ public class PspiIndexGeneratorGUI extends JFrame {
         overrideImageNamesCheckBox.setSelected(isOverrideImageNamesSelected);
         outputImageNamePatternText.setText(preferences.get(PREF_OUTPUT_IMAGE_NAME_PATTERN, ""));
         outputImageNamePatternText.setEnabled(isOverrideImageNamesSelected);
-        forceOutputCheckbox.setSelected(preferences.getBoolean(PREF_FORCE_OUTPUT, true));
         compressionQualityModel.setValue(preferences.getFloat(PREF_COMPRESSION_QUALITY, PspiIndexGenerator.DEFAULT_COMPRESSION_QUALITY * 100));
         resetRadioGroupValue(preferences, PREF_CROP_ANCHOR, PspiIndexGenerator.DEFAULT_CROP_ANCHOR);
         resetRadioGroupValue(preferences, PREF_RESIZE, RESIZE_NO_RESIZE);
@@ -452,7 +493,6 @@ public class PspiIndexGeneratorGUI extends JFrame {
         preferences.putBoolean(PREF_STRICT, strictCheckBox.isSelected());
         preferences.putBoolean(PREF_OVERRIDE_IMAGE_NAMES, overrideImageNamesCheckBox.isSelected());
         preferences.put(PREF_OUTPUT_IMAGE_NAME_PATTERN, outputImageNamePatternText.getText());
-        preferences.putBoolean(PREF_FORCE_OUTPUT, forceOutputCheckbox.isSelected());
         preferences.putFloat(PREF_COMPRESSION_QUALITY, compressionQualityModel.getNumber().floatValue());
         saveRadioGroupValue(preferences, PREF_CROP_ANCHOR);
         saveRadioGroupValue(preferences, PREF_RESIZE);
