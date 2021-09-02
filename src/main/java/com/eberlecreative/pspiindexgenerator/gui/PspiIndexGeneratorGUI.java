@@ -94,9 +94,11 @@ public class PspiIndexGeneratorGUI extends JFrame {
     private JCheckBox overrideImageNamesCheckBox;
     private JButton dataFileBrowseButton;
     private File lastSelectedFile;
+    private Preferences preferences;
 
     public PspiIndexGeneratorGUI(Preferences preferences) {
         super("PSPI Index Generator");
+        this.preferences = preferences;
         setResizable(false);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLocationByPlatform(true);
@@ -113,10 +115,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
             final String pathString = path.getAbsolutePath();
             inputDirText.setText(pathString);
             preferences.put(PREF_LAST_INPUT_DIR, pathString);
-            flush(preferences);
-            if (outputDirText.getText().trim().length() == 0) {
-                outputDirText.setText(pathString + "_generated");
-            }
+            flushPreferences();
         }));
 
         JLabel outputDirLabel = new JLabel("Output Directory:");
@@ -129,8 +128,9 @@ public class PspiIndexGeneratorGUI extends JFrame {
         JButton outputDirBrowseButton = new JButton("Browse");
         outputDirBrowseButton.addActionListener(chooseDirectory(() -> findFirst(inputDirText, dataFilePathText, lastSelectedFile), path -> {
             final String pathString = path.getAbsolutePath();
-            preferences.put(PREF_LAST_OUTPUT_DIR, pathString);
             outputDirText.setText(pathString);
+            preferences.put(PREF_LAST_OUTPUT_DIR, pathString);
+            flushPreferences();
         }));
         
         getContentPane().setLayout(new MigLayout("", "[85px][312px,grow][69px]", "[][][][][][][][][][][][][][][][][][]"));
@@ -245,7 +245,6 @@ public class PspiIndexGeneratorGUI extends JFrame {
         addRadioButtonGroup(PREF_DATA_SOURCE, useFileNamesRadioButton, useDataFileRadioButton);
         addListenerToRadioButtonGroup(PREF_DATA_SOURCE, radio -> {
             final String selectedDataSource = radio.getText();
-            preferences.put(PREF_DATA_SOURCE, selectedDataSource);
             if(DATA_SOURCE_USE_FILE_NAMES.equalsIgnoreCase(selectedDataSource)) {
                 enable(imageFolderPatternText, imageFilePatternText);
                 disable(dataFilePathText, dataFileBrowseButton);
@@ -263,8 +262,9 @@ public class PspiIndexGeneratorGUI extends JFrame {
         getContentPane().add(dataFileBrowseButton, "cell 2 13");
         dataFileBrowseButton.addActionListener(chooseExcelFile(() -> findFirst(dataFilePathText, inputDirText, lastSelectedFile), path -> {
             final String pathString = path.getAbsolutePath();
-            preferences.put(PREF_LAST_DATA_FILE_PATH, pathString);
             dataFilePathText.setText(pathString);
+            preferences.put(PREF_LAST_DATA_FILE_PATH, pathString);
+            flushPreferences();
         }));
         
         JLabel overrideImageNamesLabel = new JLabel("Override Output Image Names:");
@@ -291,20 +291,20 @@ public class PspiIndexGeneratorGUI extends JFrame {
         JButton savePreferencesButton = new JButton("Save Settings");
         getContentPane().add(savePreferencesButton, "flowx,cell 1 16 2 1,alignx right");
         savePreferencesButton.addActionListener(e -> {
-            savePreferences(preferences);
+            savePreferences();
         });
         
         JButton resetPreferencesButton = new JButton("Reload Settings");
         getContentPane().add(resetPreferencesButton, "cell 1 16 2 1,alignx right");
         resetPreferencesButton.addActionListener(e -> {
-            resetPreferences(preferences);
+            resetPreferences();
         });
         
         JButton clearSettingsButton = new JButton("Clear Settings");
         getContentPane().add(clearSettingsButton, "cell 1 16 2 1,alignx right");
         clearSettingsButton.addActionListener(e -> {
-            clearPreferences(preferences);
-            resetPreferences(preferences);
+            clearPreferences();
+            resetPreferences();
         });
         
         
@@ -398,7 +398,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
             });
         });
         
-        resetPreferences(preferences);
+        resetPreferences();
         
         pack();
     }
@@ -452,7 +452,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         return String.format("%s (%sx%s)", orig, imageSize.getWidth(), imageSize.getHeight());
     }
 
-    private void clearPreferences(Preferences preferences) {
+    private void clearPreferences() {
         try {
             preferences.clear();
         } catch (BackingStoreException e) {
@@ -476,37 +476,37 @@ public class PspiIndexGeneratorGUI extends JFrame {
         });
     }
 
-    private void resetPreferences(Preferences preferences) {
+    private void resetPreferences() {
         strictCheckBox.setSelected(preferences.getBoolean(PREF_STRICT, false));
         final boolean isOverrideImageNamesSelected = preferences.getBoolean(PREF_OVERRIDE_IMAGE_NAMES, false);
         overrideImageNamesCheckBox.setSelected(isOverrideImageNamesSelected);
         outputImageNamePatternText.setText(preferences.get(PREF_OUTPUT_IMAGE_NAME_PATTERN, ""));
         outputImageNamePatternText.setEnabled(isOverrideImageNamesSelected);
         compressionQualityModel.setValue(preferences.getFloat(PREF_COMPRESSION_QUALITY, PspiIndexGenerator.DEFAULT_COMPRESSION_QUALITY * 100));
-        resetRadioGroupValue(preferences, PREF_CROP_ANCHOR, PspiIndexGenerator.DEFAULT_CROP_ANCHOR);
-        resetRadioGroupValue(preferences, PREF_RESIZE, RESIZE_NO_RESIZE);
-        resetRadioGroupValue(preferences, PREF_DATA_SOURCE, DATA_SOURCE_USE_FILE_NAMES);
+        resetRadioGroupValue(PREF_CROP_ANCHOR, PspiIndexGenerator.DEFAULT_CROP_ANCHOR);
+        resetRadioGroupValue(PREF_RESIZE, RESIZE_NO_RESIZE);
+        resetRadioGroupValue(PREF_DATA_SOURCE, DATA_SOURCE_USE_FILE_NAMES);
         imageFilePatternText.setText(preferences.get(PREF_IMAGE_FILE_PATTERN, PspiIndexGenerator.DEFAULT_IMAGE_FILE_PATTERN));
         imageFolderPatternText.setText(preferences.get(PREF_IMAGE_FOLDER_PATTERN, PspiIndexGenerator.DEFAULT_IMAGE_FOLDER_PATTERN));
         dataFilePathText.setText(preferences.get(PREF_DATA_FILE_PATH, ""));
         
     }
 
-    private void savePreferences(Preferences preferences) {
+    private void savePreferences() {
         preferences.putBoolean(PREF_STRICT, strictCheckBox.isSelected());
         preferences.putBoolean(PREF_OVERRIDE_IMAGE_NAMES, overrideImageNamesCheckBox.isSelected());
         preferences.put(PREF_OUTPUT_IMAGE_NAME_PATTERN, outputImageNamePatternText.getText());
         preferences.putFloat(PREF_COMPRESSION_QUALITY, compressionQualityModel.getNumber().floatValue());
-        saveRadioGroupValue(preferences, PREF_CROP_ANCHOR);
-        saveRadioGroupValue(preferences, PREF_RESIZE);
-        saveRadioGroupValue(preferences, PREF_DATA_SOURCE);
+        saveRadioGroupValue(PREF_CROP_ANCHOR);
+        saveRadioGroupValue(PREF_RESIZE);
+        saveRadioGroupValue(PREF_DATA_SOURCE);
         preferences.put(PREF_IMAGE_FILE_PATTERN, imageFilePatternText.getText());
         preferences.put(PREF_IMAGE_FOLDER_PATTERN, imageFolderPatternText.getText());
         preferences.put(PREF_DATA_FILE_PATH, dataFilePathText.getText());
-        flush(preferences);
+        flushPreferences();
     }
 
-    private void flush(Preferences preferences) {
+    private void flushPreferences() {
         try {
             preferences.flush();
         } catch (BackingStoreException ex) {
@@ -514,7 +514,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         }
     }
 
-    private void saveRadioGroupValue(Preferences preferences, final String radioPrefName) {
+    private void saveRadioGroupValue(final String radioPrefName) {
         preferences.put(radioPrefName, getSelectedRadioFromGroup(radioPrefName));
     }
     
@@ -548,7 +548,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         return radioButtonGroupsByName.get(groupName);
     }
     
-    private void resetRadioGroupValue(Preferences preferences, String groupName, String defaultValue) {
+    private void resetRadioGroupValue(String groupName, String defaultValue) {
         final String text = preferences.get(groupName, defaultValue);
         iterateRadios(groupName, radio -> {
             final boolean selected = radio.getText().equalsIgnoreCase(text);
@@ -603,6 +603,8 @@ public class PspiIndexGeneratorGUI extends JFrame {
         iterateRadios(groupName, radio -> {
             radio.addItemListener(e -> {
                 if(e.getStateChange() == ItemEvent.SELECTED) {
+                    preferences.put(groupName, radio.getText());
+                    flushPreferences();
                     consumer.accept(radio);
                 }
             });
