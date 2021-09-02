@@ -7,10 +7,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.io.File;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,6 +18,8 @@ import java.util.function.Supplier;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
+import javax.swing.AbstractButton;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
@@ -41,6 +42,7 @@ import javax.swing.WindowConstants;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.JTextComponent;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
@@ -84,13 +86,14 @@ public class PspiIndexGeneratorGUI extends JFrame {
     private JTextField imageFolderPatternText;
     private JTextField imageFilePatternText;
     private JCheckBox strictCheckBox;
-    private Map<String, List<JRadioButton>> radioButtonGroupsByName = new HashMap<>();
+    private Map<String, ButtonGroup> radioButtonGroupsByName = new HashMap<>();
     private SpinnerNumberModel compressionQualityModel;
     private JSpinner compressionQualitySpinner;
     private JTextField dataFilePathText;
     private JTextField outputImageNamePatternText;
     private JCheckBox overrideImageNamesCheckBox;
     private JButton dataFileBrowseButton;
+    private File lastSelectedFile;
 
     public PspiIndexGeneratorGUI(Preferences preferences) {
         super("PSPI Index Generator");
@@ -106,7 +109,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         inputDirText.setText(preferences.get(PREF_LAST_INPUT_DIR, ""));
 
         JButton inputDirBrowseButton = new JButton("Browse");
-        inputDirBrowseButton.addActionListener(chooseDirectory(() -> inputDirText.getText(), path -> {
+        inputDirBrowseButton.addActionListener(chooseDirectory(() -> findFirst(inputDirText, outputDirText, lastSelectedFile), path -> {
             final String pathString = path.getAbsolutePath();
             inputDirText.setText(pathString);
             preferences.put(PREF_LAST_INPUT_DIR, pathString);
@@ -124,7 +127,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         outputDirText.setText(preferences.get(PREF_LAST_OUTPUT_DIR, ""));
 
         JButton outputDirBrowseButton = new JButton("Browse");
-        outputDirBrowseButton.addActionListener(chooseDirectory(() -> outputDirText.getText(), path -> {
+        outputDirBrowseButton.addActionListener(chooseDirectory(() -> findFirst(inputDirText, dataFilePathText, lastSelectedFile), path -> {
             final String pathString = path.getAbsolutePath();
             preferences.put(PREF_LAST_OUTPUT_DIR, pathString);
             outputDirText.setText(pathString);
@@ -258,7 +261,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         
         dataFileBrowseButton = new JButton("Browse");
         getContentPane().add(dataFileBrowseButton, "cell 2 13");
-        dataFileBrowseButton.addActionListener(chooseExcelFile(() -> dataFilePathText.getText(), path -> {
+        dataFileBrowseButton.addActionListener(chooseExcelFile(() -> findFirst(dataFilePathText, inputDirText, lastSelectedFile), path -> {
             final String pathString = path.getAbsolutePath();
             preferences.put(PREF_LAST_DATA_FILE_PATH, pathString);
             dataFilePathText.setText(pathString);
@@ -524,7 +527,9 @@ public class PspiIndexGeneratorGUI extends JFrame {
     }
     
     private String getSelectedRadioFromGroup(String groupName) {
-        for(JRadioButton radio : radioButtonGroupsByName.get(groupName)) {
+        final ButtonGroup buttonGroup = getButtonGroup(groupName);
+        for(AbstractButton button : Collections.list(buttonGroup.getElements())) {
+            final JRadioButton radio = (JRadioButton)button;
             if(radio.isSelected()) {
                 return radio.getText();
             }
@@ -533,9 +538,14 @@ public class PspiIndexGeneratorGUI extends JFrame {
     }
     
     private void iterateRadios(String groupName, Consumer<JRadioButton> consumer) {
-        for(JRadioButton radio : radioButtonGroupsByName.get(groupName)) {
-            consumer.accept(radio);
+        final ButtonGroup buttonGroup = getButtonGroup(groupName);
+        for(AbstractButton radio : Collections.list(buttonGroup.getElements())) {
+            consumer.accept((JRadioButton)radio);
         }
+    }
+
+    private ButtonGroup getButtonGroup(String groupName) {
+        return radioButtonGroupsByName.get(groupName);
     }
     
     private void resetRadioGroupValue(Preferences preferences, String groupName, String defaultValue) {
@@ -547,7 +557,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
     }
 
     private void addRadioButtonGroup(String groupName, JRadioButton...radios) {
-        final List<JRadioButton> group = new ArrayList<>();
+        final ButtonGroup group = new ButtonGroup();
         radioButtonGroupsByName.put(groupName, group);
         Arrays.stream(radios).forEach(group::add);
         addListenerToRadioButtonGroup(groupName, selectedRadio -> {
@@ -558,6 +568,35 @@ public class PspiIndexGeneratorGUI extends JFrame {
             });
         });
 
+    }
+    
+    private File findFirst(Object...objs) {
+        File file = null;
+        for(Object obj : objs) {
+            if(obj == null) {
+                continue;
+            }
+            final Class<? extends Object> objClass = obj.getClass();
+            if(File.class.isAssignableFrom(objClass)) {
+                file = (File)obj;
+            } else if (JTextComponent.class.isAssignableFrom(objClass)) {
+                final JTextComponent textComponent = (JTextComponent)obj;
+                final String text = textComponent.getText();
+                if(StringUtils.isNotBlank(text)) {
+                    file = new File(text);
+                }
+            }
+            if(file != null) {
+                file = file.getParentFile();
+                while (file != null && !file.exists()) {
+                    file = file.getParentFile();
+                }
+                if(file != null) {
+                    return file;
+                }
+            }
+        }
+        return file;
     }
     
     private void addListenerToRadioButtonGroup(String groupName, Consumer<JRadioButton> consumer) {
@@ -577,25 +616,26 @@ public class PspiIndexGeneratorGUI extends JFrame {
         radio.setHorizontalAlignment(SwingConstants.CENTER);
     }
     
-    private ActionListener chooseDirectory(Supplier<String> startAtSupplier, Consumer<File> textConsumer) {
+    private ActionListener chooseDirectory(Supplier<File> startAtSupplier, Consumer<File> textConsumer) {
         return getFileChooserActionListener(startAtSupplier, textConsumer, JFileChooser.DIRECTORIES_ONLY, null);
     }
     
-    private ActionListener chooseExcelFile(Supplier<String> startAtSupplier, Consumer<File> textConsumer) {
+    private ActionListener chooseExcelFile(Supplier<File> startAtSupplier, Consumer<File> textConsumer) {
         return getFileChooserActionListener(startAtSupplier, textConsumer, JFileChooser.FILES_ONLY, new FileNameExtensionFilter("Excel Spreadsheet (*.xslx)", "xlsx"));
     }
 
-    private ActionListener getFileChooserActionListener(Supplier<String> startAtSupplier, Consumer<File> textConsumer, final int fileSelectionMode, final FileFilter fileFilter) {
+    private ActionListener getFileChooserActionListener(Supplier<File> startAtSupplier, Consumer<File> textConsumer, final int fileSelectionMode, final FileFilter fileFilter) {
         return e -> {
-            final String startAt = startAtSupplier.get();
-            final JFileChooser fileChooser = new JFileChooser(startAt.length() > 0 ? new File(startAt) : null);
+            final File startAt = startAtSupplier.get();
+            final JFileChooser fileChooser = new JFileChooser(startAt);
             fileChooser.setFileSelectionMode(fileSelectionMode);
             if(fileFilter != null) {
                 fileChooser.setFileFilter(fileFilter);
             }
             int option = fileChooser.showOpenDialog(this);
             if (option == JFileChooser.APPROVE_OPTION) {
-                textConsumer.accept(fileChooser.getSelectedFile());
+                lastSelectedFile = fileChooser.getSelectedFile();
+                textConsumer.accept(lastSelectedFile);
             }
         };
     }
