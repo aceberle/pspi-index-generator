@@ -20,10 +20,12 @@ import org.junit.Test;
 import com.arakelian.faker.model.Person;
 import com.arakelian.faker.service.RandomData;
 import com.arakelian.faker.service.RandomPerson;
+import com.eberlecreative.pspiindexgenerator.eventhandler.StrictRuleViolationException;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageSize;
 import com.eberlecreative.pspiindexgenerator.pspi.generator.OutputDirectoryContainsValidPspiPackageException;
 import com.eberlecreative.pspiindexgenerator.pspi.generator.OutputDirectoryIsNotEmptyException;
 import com.eberlecreative.pspiindexgenerator.pspi.util.PspiImageSize;
+import com.eberlecreative.pspiindexgenerator.util.FileAssertionException;
 
 public class PspiIndexGeneratorCLIIntegrationTest {
     
@@ -70,6 +72,8 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private boolean forceOutput;
 
     private boolean appendOutput;
+
+    private boolean disableStrict;
     
     @Before
     public void init() {
@@ -83,6 +87,7 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         dataFile = null;
         forceOutput = false;
         appendOutput = false;
+        disableStrict = false;
     }
     
     @Test
@@ -112,11 +117,11 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
 
     @Test
-    public void specifyThatExceptionIsThrownWhenMainIsExecutedAndPictureHasInvalidAspectRatio() {
+    public void specifyThatStrictRuleViolationExceptionIsThrownWhenMainIsExecutedAndPictureHasInvalidAspectRatio() {
         givenCleanDirectoryName("volume2");
         givenImageWithInvalidAspectRatio();
         whenTestDataIsGeneratedAndMainIsExecuted();
-        thenExceptionIsThrown(RuntimeException.class, String.format("Invalid image found! Expected aspect ratio of 0.8 but found 850px / 1000px = 0.85, image at: %2$s%1$s11_Smith%1$sJohn_Doe.jpg", File.separator, outputDirectory.getAbsolutePath()));
+        thenExceptionIsThrown(StrictRuleViolationException.class, String.format("Invalid image found! Expected aspect ratio of 0.8 but found 850px / 1000px = 0.85, image at: %2$s%1$s11_Smith%1$sJohn_Doe.jpg", File.separator, outputDirectory.getAbsolutePath()));
     }
 
     @Test
@@ -149,11 +154,11 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     }
     
     @Test
-    public void specifyThatExceptionIsThrownWhenMainIsExecutedAndImageIsLargerThan10MB() {
+    public void specifyThatStrictRuleViolationExceptionIsThrownWhenMainIsExecutedAndImageIsLargerThan10MB() {
         givenCleanDirectoryName("volume6");
         givenImageLargerThan10MB();
         whenTestDataIsGeneratedAndMainIsExecuted();
-        thenExceptionIsThrown(RuntimeException.class, String.format("Invalid image found! Expected size to be less than 10000000 bytes but found size of %3$s bytes, image at: %2$s%1$s11_Smith%1$sJohn_Doe.jpg", File.separator, outputDirectory.getAbsolutePath(), getTestImageFileSize()));
+        thenExceptionIsThrown(StrictRuleViolationException.class, String.format("Invalid image found! Expected size to be less than 10000000 bytes but found size of %3$s bytes, image at: %2$s%1$s11_Smith%1$sJohn_Doe.jpg", File.separator, outputDirectory.getAbsolutePath(), getTestImageFileSize()));
     }
     
     @Test
@@ -284,6 +289,45 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thenActualIndexFileContentsMatchExpected();
     }
     
+    @Test
+    public void specifyThatStrictRuleViolationExceptionIsThrownWhenImageAlreadyExistsAndOutputDirectoryAlreadyHasValidPSPIFilesAndAppend() {
+        givenCleanDirectoryName("volume16");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenNoExceptionIsThrown();
+        givenInputDirectory("volume16a");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        givenOutputAppended();
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenExceptionIsThrown(StrictRuleViolationException.class, "Image with name \"001.jpg\" has already been processed!  PSPI Guidelines specify that image names should be unique!");
+    }
+    
+    @Test
+    public void specifyThatFileAssertionExceptionIsThrownWhenImageAlreadyExistsAndOutputDirectoryAlreadyHasValidPSPIFilesAndAppendAndStrictDisabled() {
+        givenCleanDirectoryName("volume17");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenNoExceptionIsThrown();
+        givenInputDirectory("volume17a");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "Last Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        givenOutputAppended();
+        givenStrictDisabled();
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenExceptionIsThrown(FileAssertionException.class, String.format("Did not expect file to exist: %s", new File(outputDirectory, "images/001.jpg").getAbsoluteFile()));
+    }
+    
+    private void givenStrictDisabled() {
+        this.disableStrict = true;
+    }
+
     private void givenOutputAppended() {
         this.appendOutput = true;
     }
@@ -411,7 +455,9 @@ public class PspiIndexGeneratorCLIIntegrationTest {
     private void whenMainIsExecuted() {
         final List<String> commandArguments = new ArrayList<>();
         commandArguments.add("-v");
-        commandArguments.add("-s");
+        if(!disableStrict) {
+            commandArguments.add("-s");
+        }
         commandArguments.add("-i");
         commandArguments.add(inputDirectory.getAbsolutePath());
         commandArguments.add("-o");

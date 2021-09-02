@@ -5,9 +5,12 @@ import java.io.File;
 import java.io.IOException;
 
 import com.eberlecreative.pspiindexgenerator.imagemodifier.ImageModifier;
+import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
 
 public class ImageModifyingCopier implements ImageCopier {
+    
+    private FileUtils fileUtils = FileUtils.getInstance();
 
     private ImageUtils imageUtils = ImageUtils.getInstance();
 
@@ -22,6 +25,7 @@ public class ImageModifyingCopier implements ImageCopier {
 
     @Override
     public void copyImage(File sourceFile, File targetFile) throws IOException {
+        fileUtils.assertFileDoesNotExist(targetFile);
         BufferedImage image = imageUtils.readImage(sourceFile);
         image = imageModifier.modifyImage(sourceFile, image);
         imageUtils.saveImageCopyMetaData(image, sourceFile, targetFile, compressionQuality);

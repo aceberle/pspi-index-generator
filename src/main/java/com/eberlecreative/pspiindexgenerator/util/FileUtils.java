@@ -79,6 +79,12 @@ public class FileUtils {
             throw new FileAssertionException("Expected directory to exist: " + directory);
         }
     }
+    
+    public void assertFileDoesNotExist(File file) {
+        if(file.exists()) {
+            throw new FileAssertionException(String.format("Did not expect file to exist: %s", file));
+        }
+    }
 
     public void assertIsFileWithSize(File expectedFile) {
         if (!expectedFile.isFile()) {

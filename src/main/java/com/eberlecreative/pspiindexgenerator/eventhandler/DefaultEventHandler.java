@@ -22,7 +22,7 @@ public class DefaultEventHandler implements EventHandler {
         logger.error(message, objects);
         if(strict) {
             final String fullMessage = String.format(message, objects);
-            throw new RuntimeException(fullMessage);
+            throw new StrictRuleViolationException(fullMessage);
         }
     }
 
