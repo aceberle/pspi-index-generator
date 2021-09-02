@@ -1,4 +1,4 @@
-package com.eberlecreative.pspiindexgenerator.pspi;
+package com.eberlecreative.pspiindexgenerator.pspi.util;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -18,8 +18,8 @@ public class IndexRecordFieldsFactory {
         addField(IndexRecordFields.IMAGE_FOLDER, "Image Folder");
         addField(IndexRecordFields.IMAGE_FILE_NAME, "Image File Name");
         addField(IndexRecordFields.GRADE, "Grade");
-        addField("lastName", "Last Name");
-        addField("firstName", "First Name");
+        addField(IndexRecordFields.LAST_NAME, "Last Name");
+        addField(IndexRecordFields.FIRST_NAME, "First Name");
         addField(IndexRecordFields.HOME_ROOM, "Home Room");
         addField("period", "Period");
         addField("teacherName", "Teacher Name");

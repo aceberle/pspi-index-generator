@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Iterator;
 
 import javax.imageio.IIOImage;
@@ -35,11 +34,10 @@ public class ImageUtils {
         return withReader(file, reader -> reader.read(0));
     }
 
-    public void saveImageCopyMetaData(BufferedImage image, Path sourcePath, Path targetPath, float compressionQuality)
+    public void saveImageCopyMetaData(BufferedImage image, File sourceFile, File outputFile, float compressionQuality)
             throws IOException {
-        final File outputFile = targetPath.toFile();
         final ImageWriter writer = getImageWriter(getExtension(outputFile));
-        withReader(sourcePath.toFile(), reader -> { 
+        withReader(sourceFile, reader -> { 
             try (FileOutputStream fout = new FileOutputStream(outputFile);
                     ImageOutputStream iout = ImageIO.createImageOutputStream(fout)) {
                 writer.setOutput(iout);

@@ -2,9 +2,9 @@ package com.eberlecreative.pspiindexgenerator.imagemodifier;
 
 import java.awt.Point;
 import java.awt.image.BufferedImage;
-import java.nio.file.Path;
+import java.io.File;
 
-import com.eberlecreative.pspiindexgenerator.logger.Logger;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 
 public class CropImageModifier implements ImageModifier {
 
@@ -12,16 +12,16 @@ public class CropImageModifier implements ImageModifier {
 
     private final CropAnchor cropAnchor;
 
-    private final Logger logger;
+    private final EventHandler eventHandler;
 
-    public CropImageModifier(AspectRatioProvider targetAspectRatioProvider, CropAnchor cropAnchor, Logger logger) {
+    public CropImageModifier(AspectRatioProvider targetAspectRatioProvider, CropAnchor cropAnchor, EventHandler eventHandler) {
         this.targetAspectRatioProvider = targetAspectRatioProvider;
         this.cropAnchor = cropAnchor;
-        this.logger = logger;
+        this.eventHandler = eventHandler;
     }
 
     @Override
-    public BufferedImage modifyImage(Path imagePath, BufferedImage origImage) {
+    public BufferedImage modifyImage(File imageFile, BufferedImage origImage) {
         final int origWidth = origImage.getWidth();
         final int origHeight = origImage.getHeight();
         final double origAspectRatio = ((double)origWidth)/origHeight;
@@ -33,13 +33,13 @@ public class CropImageModifier implements ImageModifier {
         } else if(origAspectRatio < targetAspectRatio) {
             newHeight = (int) Math.round(origWidth / targetAspectRatio);
         } else {
-            logger.logInfo("Skipping center-crop for image \"%s\"", imagePath.getFileName());
+            eventHandler.info("Skipping center-crop for image \"%s\"", imageFile.getName());
             return origImage;
         }
         final Point offsets = cropAnchor.calculateCropOffset(origWidth, origHeight, newWidth, newHeight);
         final int x = (int)offsets.getX();
         final int y = (int)offsets.getY();
-        logger.logInfo("Center-cropping image \"%s\" from %sx%s to %sx%s with offset X = %s and offset Y = %s", imagePath.getFileName(), origWidth, origHeight, newWidth, newHeight, x, y);
+        eventHandler.info("Center-cropping image \"%s\" from %sx%s to %sx%s with offset X = %s and offset Y = %s", imageFile.getName(), origWidth, origHeight, newWidth, newHeight, x, y);
         return origImage.getSubimage(x, y, newWidth, newHeight);
     }
     

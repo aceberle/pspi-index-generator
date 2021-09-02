@@ -25,9 +25,11 @@ public class TabDelimitedRecordWriter implements RecordWriter {
     }
 
     @Override
-    public void writeHeaders() throws IOException {
-        writer = new PrintWriter(new FileWriter(indexFile), true);
-        writeRecord(RecordField::getLabel, Function.identity());
+    public void initializeFile(boolean append) throws IOException {
+        writer = new PrintWriter(new FileWriter(indexFile, append), true);
+        if(!append) {
+            writeRecord(RecordField::getLabel, Function.identity());
+        }
     }
 
     @Override

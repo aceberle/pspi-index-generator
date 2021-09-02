@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 public class FileUtils {
 
@@ -14,8 +15,12 @@ public class FileUtils {
         return instance;
     }
     
-    public boolean makeParentDirectory(File file) {
+    public boolean mkdirs(File file) {
         return file.getParentFile().mkdirs();
+    }
+
+    public boolean mkdirs(Path newImageFilePath) {
+        return mkdirs(newImageFilePath.toFile());
     }
     
     public Path getRelativePath(File currentBaseDir, File newBaseDir, File currentFilePath) {
@@ -67,6 +72,32 @@ public class FileUtils {
                 out.write(buffer, 0 , bytesRead);
             }
         }
+    }
+
+    public void assertIsDirectory(File directory) {
+        if (!directory.isDirectory()) {
+            throw new FileAssertionException("Expected directory to exist: " + directory);
+        }
+    }
+    
+    public void assertFileDoesNotExist(File file) {
+        if(file.exists()) {
+            throw new FileAssertionException(String.format("Did not expect file to exist: %s", file));
+        }
+    }
+
+    public void assertIsFileWithSize(File expectedFile) {
+        if (!expectedFile.isFile()) {
+            throw new FileAssertionException(String.format("Expected file to exist: %s", expectedFile));
+        }
+        if(expectedFile.length() == 0) {
+            throw new FileAssertionException(String.format("Expected file to have size but was empty: %s", expectedFile));
+        }
+    }
+
+    public File[] sort(File[] files) {
+        Arrays.sort(files, (f1, f2) -> String.CASE_INSENSITIVE_ORDER.compare(f1.getName(), f2.getName()));
+        return files;
     }
 
 }

@@ -1,10 +1,10 @@
 package com.eberlecreative.pspiindexgenerator.imagecopier;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 
 public interface ImageCopier {
     
-    public void copyImage(Path sourcePath, Path targetPath) throws IOException;
+    public void copyImage(File sourceFile, File targetFile) throws IOException;
 
 }

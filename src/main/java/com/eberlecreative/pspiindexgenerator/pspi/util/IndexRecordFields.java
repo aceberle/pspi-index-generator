@@ -1,4 +1,4 @@
-package com.eberlecreative.pspiindexgenerator.pspi;
+package com.eberlecreative.pspiindexgenerator.pspi.util;
 
 public class IndexRecordFields {
     
@@ -13,5 +13,9 @@ public class IndexRecordFields {
     public static final String GRADE = "grade";
     
     public static final String HOME_ROOM = "homeRoom";
+    
+    public static final String FIRST_NAME = "firstName";
+    
+    public static final String LAST_NAME = "lastName";
 
 }

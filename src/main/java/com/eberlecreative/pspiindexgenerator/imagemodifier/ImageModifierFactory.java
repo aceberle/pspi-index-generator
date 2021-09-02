@@ -3,7 +3,7 @@ package com.eberlecreative.pspiindexgenerator.imagemodifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.eberlecreative.pspiindexgenerator.logger.Logger;
+import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 
 public class ImageModifierFactory  {
     
@@ -25,11 +25,11 @@ public class ImageModifierFactory  {
         return this;
     }
 
-    public ImageModifier getImageModifier(Logger logger) {
+    public ImageModifier getImageModifier(EventHandler evenHandler) {
         final List<ImageModifier> modifiers = new ArrayList<>();
         if(targetSize != null) {
-            modifiers.add(new CropImageModifier(targetSize, cropAnchor, logger));
-            modifiers.add(new ResizeImageModifier(targetSize, logger));
+            modifiers.add(new CropImageModifier(targetSize, cropAnchor, evenHandler));
+            modifiers.add(new ResizeImageModifier(targetSize, evenHandler));
         }
         if(modifiers.isEmpty()) {
             return null;

@@ -15,8 +15,8 @@ import org.apache.commons.cli.ParseException;
 
 import com.eberlecreative.pspiindexgenerator.gui.PspiIndexGeneratorGUI;
 import com.eberlecreative.pspiindexgenerator.imagemodifier.CropAnchors;
-import com.eberlecreative.pspiindexgenerator.pspi.PspiImageSize;
-import com.eberlecreative.pspiindexgenerator.pspi.PspiIndexGenerator;
+import com.eberlecreative.pspiindexgenerator.pspi.generator.PspiIndexGenerator;
+import com.eberlecreative.pspiindexgenerator.pspi.util.PspiImageSize;
 
 public class PspiIndexGeneratorCLI {
 
@@ -47,7 +47,8 @@ public class PspiIndexGeneratorCLI {
         final PspiIndexGenerator.Builder builder = new PspiIndexGenerator.Builder()
                                                     .verboseLogging(cmd.hasOption("v"))
                                                     .strict(cmd.hasOption("s"))
-                                                    .forceOutput(cmd.hasOption("f"));
+                                                    .forceOutput(cmd.hasOption("f"))
+                                                    .appendOutput(cmd.hasOption("a"));
         if(cmd.hasOption("r")) {
             builder.resizeImages(PspiImageSize.fromString(cmd.getOptionValue("r")));
             if(cmd.hasOption("c")) {
@@ -56,6 +57,12 @@ public class PspiIndexGeneratorCLI {
         }
         if(cmd.hasOption("q")) {
             builder.compressionQuality(Float.parseFloat(cmd.getOptionValue("q")));
+        }
+        if(cmd.hasOption("d")) {
+            builder.dataFile(new File(cmd.getOptionValue("d")));
+        }
+        if(cmd.hasOption("p")) {
+            builder.outputFilePattern(cmd.getOptionValue("p"));
         }
         final PspiIndexGenerator generator = builder.build();
         final File inputDirectory = new File(cmd.getOptionValue("i"));
@@ -76,7 +83,7 @@ public class PspiIndexGeneratorCLI {
         }
         final String header = buffer.toString();
         final String footer = "Please report issues to aceberle@gmail.com";
-        formatter.printHelp(cmdLineSyntax, header, options, footer, true);
+        formatter.printHelp(125, cmdLineSyntax, header, options, footer, true);
     }
 
     private static Options makeOptions() {
@@ -84,8 +91,11 @@ public class PspiIndexGeneratorCLI {
         options.addOption(Option.builder("h").longOpt("help").desc("Prints this message").build());
         options.addOption(Option.builder("i").longOpt("input-dir").hasArg().argName("inputDir").desc("Location of input directory").build());
         options.addOption(Option.builder("o").longOpt("output-dir").hasArg().argName("outputDir").desc("Location of output directory").build());
+        options.addOption(Option.builder("d").longOpt("data-file").hasArg().argName("dataFile").desc("Location of input data file").build());
+        options.addOption(Option.builder("p").longOpt("output-pattern").hasArg().argName("outputPattern").desc("Change output file names").build());
         options.addOption(Option.builder("v").longOpt("verbose").desc("Enables verbose logging").build());
         options.addOption(Option.builder("f").longOpt("force").desc("Force overwrite of existing output directory").build());
+        options.addOption(Option.builder("a").longOpt("append").desc("Append data to existing PSPI output directory").build());
         options.addOption(Option.builder("s").longOpt("strict").desc("Fails on unexpected files").build());
         options.addOption(Option.builder("r")
                                     .longOpt("resize-images")

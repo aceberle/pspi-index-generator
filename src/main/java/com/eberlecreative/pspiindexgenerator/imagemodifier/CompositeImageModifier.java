@@ -1,7 +1,7 @@
 package com.eberlecreative.pspiindexgenerator.imagemodifier;
 
 import java.awt.image.BufferedImage;
-import java.nio.file.Path;
+import java.io.File;
 import java.util.List;
 
 public class CompositeImageModifier implements ImageModifier {
@@ -13,10 +13,10 @@ public class CompositeImageModifier implements ImageModifier {
     }
 
     @Override
-    public BufferedImage modifyImage(Path imagePath, BufferedImage origImage) {
+    public BufferedImage modifyImage(File imageFile, BufferedImage origImage) {
         BufferedImage image = origImage;
         for(ImageModifier imageModifier : imageModifiers) {
-            image = imageModifier.modifyImage(imagePath, image);
+            image = imageModifier.modifyImage(imageFile, image);
         }
         return image;
     }

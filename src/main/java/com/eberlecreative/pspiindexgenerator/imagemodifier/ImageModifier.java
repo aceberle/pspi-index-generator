@@ -1,10 +1,10 @@
 package com.eberlecreative.pspiindexgenerator.imagemodifier;
 
 import java.awt.image.BufferedImage;
-import java.nio.file.Path;
+import java.io.File;
 
 public interface ImageModifier {
 
-    public BufferedImage modifyImage(Path imagePath, BufferedImage image);
+    public BufferedImage modifyImage(File imageFile, BufferedImage image);
 
 }

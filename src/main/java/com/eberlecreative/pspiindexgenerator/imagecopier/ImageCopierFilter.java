@@ -1,7 +1,7 @@
 package com.eberlecreative.pspiindexgenerator.imagecopier;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 
 public class ImageCopierFilter implements ImageCopier {
 
@@ -12,8 +12,8 @@ public class ImageCopierFilter implements ImageCopier {
     }
 
     @Override
-    public void copyImage(Path sourcePath, Path targetPath) throws IOException {
-        this.source.copyImage(sourcePath, targetPath);
+    public void copyImage(File sourceFile, File targetFile) throws IOException {
+        this.source.copyImage(sourceFile, targetFile);
     }
     
 }
