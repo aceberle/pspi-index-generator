@@ -145,6 +145,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         getContentPane().add(strictLabel, "cell 0 2,alignx right");
         
         strictCheckBox = new JCheckBox("");
+        strictCheckBox.setToolTipText("Strict mode will stop processing if any strict rules are violated");
         strictLabel.setLabelFor(strictCheckBox);
         getContentPane().add(strictCheckBox, "cell 1 2");
         
@@ -271,6 +272,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         getContentPane().add(overrideImageNamesLabel, "cell 0 14");
         
         overrideImageNamesCheckBox = new JCheckBox("");
+        overrideImageNamesCheckBox.setToolTipText("Replace original image names with field data");
         overrideImageNamesLabel.setLabelFor(overrideImageNamesCheckBox);
         getContentPane().add(overrideImageNamesCheckBox, "cell 1 14");
         overrideImageNamesCheckBox.addChangeListener(event -> {
@@ -285,6 +287,7 @@ public class PspiIndexGeneratorGUI extends JFrame {
         getContentPane().add(imageNamePatternLabel, "cell 0 15,alignx trailing");
         
         outputImageNamePatternText = new JTextField();
+        outputImageNamePatternText.setToolTipText("Use data field names between < and >");
         getContentPane().add(outputImageNamePatternText, "cell 1 15,growx");
         outputImageNamePatternText.setColumns(10);
         
