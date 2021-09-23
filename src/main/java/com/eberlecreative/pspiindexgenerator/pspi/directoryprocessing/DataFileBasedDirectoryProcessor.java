@@ -2,10 +2,13 @@ package com.eberlecreative.pspiindexgenerator.pspi.directoryprocessing;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,14 +54,17 @@ public class DataFileBasedDirectoryProcessor implements DirectoryProcessor {
     public void processDirectory(File inputDirectory, File outputDirectory, Collection<RecordField> recordFields, FileProcessor fileProcessor) throws IOException {
         final List<Map<String, String>> rawData = dataFileParser.parseDataFile(dataFilePath);
         final Map<Long, Map<String, String>> dataByImageNumber = getDataByImageNumber(rawData, eventHandler);
-        for (File file : fileUtils.sort(inputDirectory.listFiles())) {
+        final Queue<File> files = new LinkedList<>();
+        files.addAll(getFiles(inputDirectory));
+        while (!files.isEmpty()) {
+        	final File file = files.poll();
             if(file.isHidden()) {
                 continue;
             }
             eventHandler.info("Processing path: " + file);
-            if (!file.isFile()) {
-                eventHandler.error("Expected path to be a file: " + file);
-            } else {
+            if (file.isDirectory()) {
+                files.addAll(getFiles(file));
+            } else if(file.isFile()) {
                 final String imageFileName = file.getName();
                 final Matcher imageFileMatcher = IMAGE_NAME_PATTERN.matcher(imageFileName);
                 if (!imageFileMatcher.matches()) {
@@ -73,9 +79,15 @@ public class DataFileBasedDirectoryProcessor implements DirectoryProcessor {
                         fileProcessor.processFile(inputDirectory, outputDirectory, IMAGES_DIR_NAME, file, fieldValues);
                     }
                 }
+            } else {
+            	eventHandler.info("Skipping path that is not a file or a directory: " + file);
             }
         }
     }
+
+	private List<File> getFiles(File inputDirectory) {
+		return Arrays.asList(fileUtils.sort(inputDirectory.listFiles()));
+	}
     
     private void updateNames(Map<String, String> rowData) {
         final String lastName = rowData.get(IndexRecordFields.LAST_NAME);
