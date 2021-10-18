@@ -5,6 +5,6 @@ import java.io.File;
 
 public interface ImageModifier {
 
-    public BufferedImage modifyImage(File imageFile, BufferedImage image);
+	public BufferedImage modifyImage(File imageFile, BufferedImage image);
 
 }

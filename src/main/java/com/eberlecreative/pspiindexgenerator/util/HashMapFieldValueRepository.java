@@ -7,7 +7,7 @@ import java.util.Map;
 public class HashMapFieldValueRepository implements FieldValueRepository {
 
 	private Map<String, String> map = new HashMap<>();
-	
+
 	@Override
 	public void put(String fieldName, String fieldValue) {
 		map.put(fieldName, fieldValue);
@@ -22,5 +22,5 @@ public class HashMapFieldValueRepository implements FieldValueRepository {
 	public Collection<String> values() {
 		return map.values();
 	}
-	
+
 }

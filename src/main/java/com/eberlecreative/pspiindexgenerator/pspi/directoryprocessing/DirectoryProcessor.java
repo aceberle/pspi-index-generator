@@ -10,6 +10,7 @@ import com.eberlecreative.pspiindexgenerator.record.RecordField;
 @FunctionalInterface
 public interface DirectoryProcessor {
 
-    void processDirectory(File inputDirectory, File outputDirectory, Collection<RecordField> recordFields, FileProcessor fileProcessor) throws IOException;
+	void processDirectory(File inputDirectory, File outputDirectory, Collection<RecordField> recordFields,
+			FileProcessor fileProcessor) throws IOException;
 
 }

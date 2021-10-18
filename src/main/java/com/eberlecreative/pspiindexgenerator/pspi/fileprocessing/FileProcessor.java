@@ -7,7 +7,8 @@ import com.eberlecreative.pspiindexgenerator.util.FieldValueRepository;
 
 @FunctionalInterface
 public interface FileProcessor {
-    
-    void processFile(File inputDirectory, File outputDirectory, String imageFolderName, File imageFile, FieldValueRepository fieldValues) throws IOException;
-    
+
+	void processFile(File inputDirectory, File outputDirectory, String imageFolderName, File imageFile,
+			FieldValueRepository fieldValues) throws IOException;
+
 }

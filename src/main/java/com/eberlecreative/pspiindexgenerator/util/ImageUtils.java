@@ -24,77 +24,77 @@ import javax.imageio.stream.ImageOutputStream;
  */
 public class ImageUtils {
 
-    private static ImageUtils instance = new ImageUtils();
+	private static ImageUtils instance = new ImageUtils();
 
-    public static ImageUtils getInstance() {
-        return instance;
-    }
+	public static ImageUtils getInstance() {
+		return instance;
+	}
 
-    public BufferedImage readImage(File file) throws IOException {
-        return withReader(file, reader -> reader.read(0));
-    }
+	public BufferedImage readImage(File file) throws IOException {
+		return withReader(file, reader -> reader.read(0));
+	}
 
-    public void saveImageCopyMetaData(BufferedImage image, File sourceFile, File outputFile, float compressionQuality)
-            throws IOException {
-        final ImageWriter writer = getImageWriter(getExtension(outputFile));
-        withReader(sourceFile, reader -> { 
-            try (FileOutputStream fout = new FileOutputStream(outputFile);
-                    ImageOutputStream iout = ImageIO.createImageOutputStream(fout)) {
-                writer.setOutput(iout);
-                final ImageWriteParam iwParam = writer.getDefaultWriteParam();
-                iwParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                iwParam.setCompressionQuality(compressionQuality);
-                //https://stackoverflow.com/a/62240696
-                if (iwParam instanceof JPEGImageWriteParam) {
-                    ((JPEGImageWriteParam) iwParam).setOptimizeHuffmanTables(true);
-                }
-                final IIOMetadata metadata = reader.getImageMetadata(0);
-                writer.write(null, new IIOImage(image, null, metadata), iwParam);
-                writer.dispose();
-            }
-            return null;
-        });
-    }
+	public void saveImageCopyMetaData(BufferedImage image, File sourceFile, File outputFile, float compressionQuality)
+			throws IOException {
+		final ImageWriter writer = getImageWriter(getExtension(outputFile));
+		withReader(sourceFile, reader -> {
+			try (FileOutputStream fout = new FileOutputStream(outputFile);
+					ImageOutputStream iout = ImageIO.createImageOutputStream(fout)) {
+				writer.setOutput(iout);
+				final ImageWriteParam iwParam = writer.getDefaultWriteParam();
+				iwParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+				iwParam.setCompressionQuality(compressionQuality);
+				// https://stackoverflow.com/a/62240696
+				if (iwParam instanceof JPEGImageWriteParam) {
+					((JPEGImageWriteParam) iwParam).setOptimizeHuffmanTables(true);
+				}
+				final IIOMetadata metadata = reader.getImageMetadata(0);
+				writer.write(null, new IIOImage(image, null, metadata), iwParam);
+				writer.dispose();
+			}
+			return null;
+		});
+	}
 
-    private <E> E withReader(File file, ImageReaderHandler<E> handler) throws FileNotFoundException, IOException {
-        ImageReader reader = null;
-        try (FileInputStream fin = new FileInputStream(file);
-                ImageInputStream in = ImageIO.createImageInputStream(fin)) {
-            reader = getImageReader(getExtension(file));
-            reader.setInput(in);
-            return handler.handle(reader);
-        } finally {
-            if(reader != null) {
-                reader.dispose();
-            }
-        }
-    }
+	private <E> E withReader(File file, ImageReaderHandler<E> handler) throws FileNotFoundException, IOException {
+		ImageReader reader = null;
+		try (FileInputStream fin = new FileInputStream(file);
+				ImageInputStream in = ImageIO.createImageInputStream(fin)) {
+			reader = getImageReader(getExtension(file));
+			reader.setInput(in);
+			return handler.handle(reader);
+		} finally {
+			if (reader != null) {
+				reader.dispose();
+			}
+		}
+	}
 
-    private interface ImageReaderHandler<E> {
+	private interface ImageReaderHandler<E> {
 
-        E handle(ImageReader reader) throws IOException;
+		E handle(ImageReader reader) throws IOException;
 
-    }
+	}
 
-    private String getExtension(File file) {
-        final String name = file.getName();
-        final int idx = name.lastIndexOf('.');
-        if (idx > -1 && idx + 1 < name.length()) {
-            return name.substring(idx + 1);
-        }
-        throw new RuntimeException("File has unknown extension: " + file);
-    }
+	private String getExtension(File file) {
+		final String name = file.getName();
+		final int idx = name.lastIndexOf('.');
+		if (idx > -1 && idx + 1 < name.length()) {
+			return name.substring(idx + 1);
+		}
+		throw new RuntimeException("File has unknown extension: " + file);
+	}
 
-    private ImageReader getImageReader(String type) {
-        return first(ImageIO.getImageReadersBySuffix(type));
-    }
+	private ImageReader getImageReader(String type) {
+		return first(ImageIO.getImageReadersBySuffix(type));
+	}
 
-    private ImageWriter getImageWriter(String type) {
-        return first(ImageIO.getImageWritersBySuffix(type));
-    }
+	private ImageWriter getImageWriter(String type) {
+		return first(ImageIO.getImageWritersBySuffix(type));
+	}
 
-    private static <E> E first(Iterator<E> itr) {
-        return itr.next();
-    }
+	private static <E> E first(Iterator<E> itr) {
+		return itr.next();
+	}
 
 }

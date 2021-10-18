@@ -3,7 +3,7 @@ package com.eberlecreative.pspiindexgenerator.util;
 import java.util.Collection;
 
 public class CanonicalizingFieldValueRepository extends HashMapFieldValueRepository {
-	
+
 	private final FieldNameCanonicalizer fieldNameCanonicalizer;
 
 	public CanonicalizingFieldValueRepository(FieldNameCanonicalizer fieldNameCanonicalizer) {
