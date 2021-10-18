@@ -1,10 +1,10 @@
 package com.eberlecreative.pspiindexgenerator.outputfilenameresolver;
 
-import java.util.Map;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepository;
 
 @FunctionalInterface
 public interface Appender {
 
-    void append(StringBuilder builder, Map<String, String> fieldValues);
-    
+	void append(StringBuilder builder, FieldValueRepository fieldValues);
+
 }

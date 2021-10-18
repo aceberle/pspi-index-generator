@@ -32,225 +32,237 @@ import com.eberlecreative.pspiindexgenerator.record.RecordField;
 import com.eberlecreative.pspiindexgenerator.record.RecordWriter;
 import com.eberlecreative.pspiindexgenerator.record.RecordWriterFactory;
 import com.eberlecreative.pspiindexgenerator.record.TabDelimitedRecordWriterFactory;
+import com.eberlecreative.pspiindexgenerator.util.CanonicalizingFieldValueRepositoryFactory;
+import com.eberlecreative.pspiindexgenerator.util.DefaultFieldNameCanonicalizer;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepositoryFactory;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
 import com.eberlecreative.pspiindexgenerator.util.ResourceUtils;
 
 public class PspiIndexGenerator {
 
-    public static final String DEFAULT_CROP_ANCHOR = "top-middle";
+	public static final String DEFAULT_CROP_ANCHOR = "top-middle";
 
-    public static final float DEFAULT_COMPRESSION_QUALITY = 0.9f;
+	public static final float DEFAULT_COMPRESSION_QUALITY = 0.9f;
 
-    public static final String DEFAULT_IMAGE_FILE_PATTERN = "(?<firstName>.*)_(?<lastName>.*)\\.jpg";
+	public static final String DEFAULT_IMAGE_FILE_PATTERN = "(?<firstName>.*)_(?<lastName>.*)\\.jpg";
 
-    public static final String DEFAULT_IMAGE_FOLDER_PATTERN = "(?<grade>[0-9a-zA-Z]+)(?:_Grade)?(?:_(?<homeRoom>.*))?";
+	public static final String DEFAULT_IMAGE_FOLDER_PATTERN = "(?<grade>[0-9a-zA-Z]+)(?:_Grade)?(?:_(?<homeRoom>.*))?";
 
-    private FileUtils fileUtils = FileUtils.getInstance();
-    
-    private ImageUtils imageUtils = ImageUtils.getInstance();
-    
-    private ResourceUtils resourceUtils = ResourceUtils.getInstance();
+	private FileUtils fileUtils = FileUtils.getInstance();
 
-    private Logger logger = new StreamLogger();
+	private ImageUtils imageUtils = ImageUtils.getInstance();
 
-    private EventHandlerFactory eventHandlerFactory = new DefaultEventHandlerFactory();
+	private ResourceUtils resourceUtils = ResourceUtils.getInstance();
 
-    private IndexRecordFieldsFactory indexRecordFieldsFactory = new IndexRecordFieldsFactory();
+	private Logger logger = new StreamLogger();
 
-    private RecordWriterFactory indexRecordWriterFactory = new TabDelimitedRecordWriterFactory();
+	private FieldValueRepositoryFactory fieldValueRepositoryFactory = new CanonicalizingFieldValueRepositoryFactory(
+			new DefaultFieldNameCanonicalizer());;
 
-    private Pattern imageFolderPattern = Pattern.compile(DEFAULT_IMAGE_FOLDER_PATTERN);
+	private EventHandlerFactory eventHandlerFactory = new DefaultEventHandlerFactory();
 
-    private Pattern imageFilePattern = Pattern.compile(DEFAULT_IMAGE_FILE_PATTERN);
+	private IndexRecordFieldsFactory indexRecordFieldsFactory = new IndexRecordFieldsFactory();
 
-    private ImageCopierFactory imageCopierFactory = new ImageCopierFactory(DEFAULT_COMPRESSION_QUALITY);
+	private RecordWriterFactory indexRecordWriterFactory = new TabDelimitedRecordWriterFactory();
 
-    private ImageModifierFactory imageModifierFactory = new ImageModifierFactory(CropAnchors.parseCropAnchor(DEFAULT_CROP_ANCHOR));
-    
-    private OutputFileNameResolverFactory outputFileNameResolverFactory = new OutputFileNameResolverFactory();
-    
-    private PspiDirectoryValidator validator = new PspiDirectoryValidator();
+	private Pattern imageFolderPattern = Pattern.compile(DEFAULT_IMAGE_FOLDER_PATTERN);
 
-    private boolean forceOutput;
-    
-    private boolean appendOutput;
+	private Pattern imageFilePattern = Pattern.compile(DEFAULT_IMAGE_FILE_PATTERN);
 
-    private File dataFilePath;
+	private ImageCopierFactory imageCopierFactory = new ImageCopierFactory(DEFAULT_COMPRESSION_QUALITY);
 
-    public static class Builder {
+	private ImageModifierFactory imageModifierFactory = new ImageModifierFactory(
+			CropAnchors.parseCropAnchor(DEFAULT_CROP_ANCHOR));
 
-        private PspiIndexGenerator instance = new PspiIndexGenerator();
+	private OutputFileNameResolverFactory outputFileNameResolverFactory = new OutputFileNameResolverFactory();
 
-        public Builder logger(Logger logger) {
-            instance.logger = logger;
-            return this;
-        }
+	private PspiDirectoryValidator validator = new PspiDirectoryValidator();
 
-        public Builder verboseLogging(boolean verbose) {
-            return logger(new StreamLogger(verbose));
-        }
+	private boolean forceOutput;
 
-        public Builder verboseLogging(boolean verbose, PrintStream out, PrintStream err) {
-            return logger(new StreamLogger(verbose, out, err));
-        }
+	private boolean appendOutput;
 
-        public Builder verboseLogging() {
-            return verboseLogging(true);
-        }
+	private File dataFilePath;
 
-        public Builder indexRecordWriterFactory(RecordWriterFactory indexRecordWriterFactory) {
-            instance.indexRecordWriterFactory = indexRecordWriterFactory;
-            return this;
-        }
+	public static class Builder {
 
-        public Builder eventHandlerFactory(EventHandlerFactory eventHandlerFactory) {
-            instance.eventHandlerFactory = eventHandlerFactory;
-            return this;
-        }
+		private PspiIndexGenerator instance = new PspiIndexGenerator();
 
-        public Builder indexRecordFieldsFactory(IndexRecordFieldsFactory indexRecordFieldsFactory) {
-            instance.indexRecordFieldsFactory = indexRecordFieldsFactory;
-            return this;
-        }
+		public Builder logger(Logger logger) {
+			instance.logger = logger;
+			return this;
+		}
 
-        public Builder dataFile(File dataFilePath) {
-            instance.dataFilePath = dataFilePath;
-            return this;
-        }
+		public Builder verboseLogging(boolean verbose) {
+			return logger(new StreamLogger(verbose));
+		}
 
-        public Builder outputFilePattern(String outputFilePattern) {
-            instance.outputFileNameResolverFactory.outputFilePattern(outputFilePattern);
-            return this;
-        }
+		public Builder verboseLogging(boolean verbose, PrintStream out, PrintStream err) {
+			return logger(new StreamLogger(verbose, out, err));
+		}
 
-        public Builder imageFolderPattern(String imageFolderPattern) {
-            return imageFolderPattern(Pattern.compile(imageFolderPattern));
-        }
+		public Builder verboseLogging() {
+			return verboseLogging(true);
+		}
 
-        public Builder imageFilePattern(String imageFilePattern) {
-            return imageFilePattern(Pattern.compile(imageFilePattern));
-        }
+		public Builder indexRecordWriterFactory(RecordWriterFactory indexRecordWriterFactory) {
+			instance.indexRecordWriterFactory = indexRecordWriterFactory;
+			return this;
+		}
 
-        public Builder imageCopierFactory(ImageCopierFactory imageCopierFactory) {
-            instance.imageCopierFactory = imageCopierFactory;
-            return this;
-        }
+		public Builder eventHandlerFactory(EventHandlerFactory eventHandlerFactory) {
+			instance.eventHandlerFactory = eventHandlerFactory;
+			return this;
+		}
 
-        public Builder forceOutput(boolean forceOutput) {
-            instance.forceOutput = forceOutput;
-            return this;
-        }
+		public Builder indexRecordFieldsFactory(IndexRecordFieldsFactory indexRecordFieldsFactory) {
+			instance.indexRecordFieldsFactory = indexRecordFieldsFactory;
+			return this;
+		}
 
-        public Builder forceOutput() {
-            return forceOutput(true);
-        }
+		public Builder dataFile(File dataFilePath) {
+			instance.dataFilePath = dataFilePath;
+			return this;
+		}
 
-        public Builder appendOutput(boolean appendOutput) {
-            instance.appendOutput = appendOutput;
-            return this;
-        }
+		public Builder outputFilePattern(String outputFilePattern) {
+			instance.outputFileNameResolverFactory.outputFilePattern(outputFilePattern);
+			return this;
+		}
 
-        public Builder appendOutput() {
-            return appendOutput(true);
-        }
+		public Builder imageFolderPattern(String imageFolderPattern) {
+			return imageFolderPattern(Pattern.compile(imageFolderPattern));
+		}
 
-        public Builder strict(boolean strict) {
-            return eventHandlerFactory(new DefaultEventHandlerFactory(strict));
-        }
+		public Builder imageFilePattern(String imageFilePattern) {
+			return imageFilePattern(Pattern.compile(imageFilePattern));
+		}
 
-        public Builder strict() {
-            return strict(true);
-        }
+		public Builder imageCopierFactory(ImageCopierFactory imageCopierFactory) {
+			instance.imageCopierFactory = imageCopierFactory;
+			return this;
+		}
 
-        public Builder cropImages(CropAnchor cropAnchor) {
-            instance.imageModifierFactory.cropAnchor(cropAnchor);
-            return this;
-        }
+		public Builder forceOutput(boolean forceOutput) {
+			instance.forceOutput = forceOutput;
+			return this;
+		}
 
-        public Builder resizeImages(PspiImageSize imageSize) {
-            instance.imageModifierFactory.resizeImages(imageSize);
-            return this;
-        }
+		public Builder forceOutput() {
+			return forceOutput(true);
+		}
 
-        public Builder compressionQuality(float compressionQuality) {
-            instance.imageCopierFactory.compressionQuality(compressionQuality);
-            return this;
-        }
+		public Builder appendOutput(boolean appendOutput) {
+			instance.appendOutput = appendOutput;
+			return this;
+		}
 
-        public Builder imageFolderPattern(Pattern pattern) {
-            instance.imageFolderPattern = pattern;
-            return this;
-        }
+		public Builder appendOutput() {
+			return appendOutput(true);
+		}
 
-        public Builder imageFilePattern(Pattern pattern) {
-            instance.imageFilePattern = pattern;
-            return this;
-        }
+		public Builder strict(boolean strict) {
+			return eventHandlerFactory(new DefaultEventHandlerFactory(strict));
+		}
 
-        public PspiIndexGenerator build() {
-            return instance;
-        }
+		public Builder strict() {
+			return strict(true);
+		}
 
-    }
+		public Builder cropImages(CropAnchor cropAnchor) {
+			instance.imageModifierFactory.cropAnchor(cropAnchor);
+			return this;
+		}
 
-    public void generate(File inputDirectory, File outputDirectory) throws Exception {
-        final EventHandler eventHandler = eventHandlerFactory.getEventHandler(logger);
-        eventHandler.info("Starting generation...");
-        fileUtils.assertIsDirectory(inputDirectory);
-        final Set<String> existingFileNames = validateAndInitOutputDirectory(outputDirectory);
-        final boolean doAppend = existingFileNames != null;
-        final File indexFile = new File(outputDirectory, PspiConstants.INDEX_FILE_NAME);
-        final Collection<RecordField> recordFields = indexRecordFieldsFactory.getIndexRecordFields();
-        final OutputFileNameResolver outputFileNameResolver = outputFileNameResolverFactory.getOutputFileNameResolver();
-        final ImageCopier imageCopier = imageCopierFactory.getImageCopier(eventHandler, imageModifierFactory, existingFileNames);
-        final DirectoryProcessor processingStrategy = getDirectoryProcessingStrategy(eventHandler);
-        try (RecordWriter indexRecordWriter = indexRecordWriterFactory.getRecordWriter(indexFile, recordFields)) {
-            indexRecordWriter.initializeFile(doAppend);
-            final FileProcessor fileProcessor = new PspiCopyAndWriteRecordFileProcessor(eventHandler, fileUtils, imageCopier, outputFileNameResolver, imageUtils, indexRecordWriter, recordFields);
-            processingStrategy.processDirectory(inputDirectory, outputDirectory, recordFields, fileProcessor);
-            eventHandler.info("Creating COPYRIGHT.TXT file...");
-            fileUtils.save(resourceUtils.getResourceAsStream("/"+PspiConstants.COPYRIGHT_FILE_NAME), new File(outputDirectory, PspiConstants.COPYRIGHT_FILE_NAME));
-            eventHandler.info("Generation completed!");
-        }
-        eventHandler.info("Validating output directory...");
-        validator.validatePspiDirectory(outputDirectory);
-        eventHandler.info("Validation completed!");
-    }
+		public Builder resizeImages(PspiImageSize imageSize) {
+			instance.imageModifierFactory.resizeImages(imageSize);
+			return this;
+		}
 
-    private DirectoryProcessor getDirectoryProcessingStrategy(EventHandler eventHandler) {
-        if(dataFilePath == null) {
-            return new FilePathPatternBasedDirectoryProcessor(fileUtils, eventHandler, imageFolderPattern, imageFilePattern);
-        }
-        return new DataFileBasedDirectoryProcessor(fileUtils, eventHandler, new DataFileParser(), dataFilePath);
-    }
+		public Builder compressionQuality(float compressionQuality) {
+			instance.imageCopierFactory.compressionQuality(compressionQuality);
+			return this;
+		}
 
-    private Set<String> validateAndInitOutputDirectory(File outputDirectory) {
-        if (outputDirectory.exists()) {
-            if (outputDirectory.isDirectory() && outputDirectory.listFiles().length > 0) {
-                if (forceOutput) {
-                    logger.info("Cleaning output directory at: " + outputDirectory);
-                    fileUtils.cleanDirectory(outputDirectory);
-                } else {
-                    Set<String> existingFileNames = null;
-                    try {
-                        existingFileNames = validator.validatePspiDirectory(outputDirectory);
-                    } catch(Exception e) {
-                        // ignore reason for being invalid pspi directory
-                        throw new OutputDirectoryIsNotEmptyException(outputDirectory);
-                    }
-                    if(appendOutput) {
-                        return existingFileNames;
-                    } else {
-                        throw new OutputDirectoryContainsValidPspiPackageException(outputDirectory);
-                    }
-                }
-            } else if (outputDirectory.isFile()) {
-                throw new RuntimeException("Output directory path points to a file!: " + outputDirectory);
-            }
-        }
-        outputDirectory.mkdirs();
-        return null;
-    }
+		public Builder imageFolderPattern(Pattern pattern) {
+			instance.imageFolderPattern = pattern;
+			return this;
+		}
+
+		public Builder imageFilePattern(Pattern pattern) {
+			instance.imageFilePattern = pattern;
+			return this;
+		}
+
+		public PspiIndexGenerator build() {
+			return instance;
+		}
+
+	}
+
+	public void generate(File inputDirectory, File outputDirectory) throws Exception {
+		final EventHandler eventHandler = eventHandlerFactory.getEventHandler(logger);
+		eventHandler.info("Starting generation...");
+		fileUtils.assertIsDirectory(inputDirectory);
+		final Set<String> existingFileNames = validateAndInitOutputDirectory(outputDirectory);
+		final boolean doAppend = existingFileNames != null;
+		final File indexFile = new File(outputDirectory, PspiConstants.INDEX_FILE_NAME);
+		final Collection<RecordField> recordFields = indexRecordFieldsFactory.getIndexRecordFields();
+		final OutputFileNameResolver outputFileNameResolver = outputFileNameResolverFactory.getOutputFileNameResolver();
+		final ImageCopier imageCopier = imageCopierFactory.getImageCopier(eventHandler, imageModifierFactory,
+				existingFileNames);
+		final DirectoryProcessor processingStrategy = getDirectoryProcessingStrategy(eventHandler);
+		try (RecordWriter indexRecordWriter = indexRecordWriterFactory.getRecordWriter(indexFile, recordFields)) {
+			indexRecordWriter.initializeFile(doAppend);
+			final FileProcessor fileProcessor = new PspiCopyAndWriteRecordFileProcessor(eventHandler, fileUtils,
+					imageCopier, outputFileNameResolver, imageUtils, indexRecordWriter, recordFields);
+			processingStrategy.processDirectory(inputDirectory, outputDirectory, recordFields, fileProcessor);
+			eventHandler.info("Creating COPYRIGHT.TXT file...");
+			fileUtils.save(resourceUtils.getResourceAsStream("/" + PspiConstants.COPYRIGHT_FILE_NAME),
+					new File(outputDirectory, PspiConstants.COPYRIGHT_FILE_NAME));
+			eventHandler.info("Generation completed!");
+		}
+		eventHandler.info("Validating output directory...");
+		validator.validatePspiDirectory(outputDirectory);
+		eventHandler.info("Validation completed!");
+	}
+
+	private DirectoryProcessor getDirectoryProcessingStrategy(EventHandler eventHandler) {
+		if (dataFilePath == null) {
+			return new FilePathPatternBasedDirectoryProcessor(fileUtils, eventHandler, imageFolderPattern,
+					imageFilePattern, fieldValueRepositoryFactory);
+		}
+		return new DataFileBasedDirectoryProcessor(fileUtils, eventHandler,
+				new DataFileParser(fieldValueRepositoryFactory), dataFilePath);
+	}
+
+	private Set<String> validateAndInitOutputDirectory(File outputDirectory) {
+		if (outputDirectory.exists()) {
+			if (outputDirectory.isDirectory() && outputDirectory.listFiles().length > 0) {
+				if (forceOutput) {
+					logger.info("Cleaning output directory at: " + outputDirectory);
+					fileUtils.cleanDirectory(outputDirectory);
+				} else {
+					Set<String> existingFileNames = null;
+					try {
+						existingFileNames = validator.validatePspiDirectory(outputDirectory);
+					} catch (Exception e) {
+						// ignore reason for being invalid pspi directory
+						throw new OutputDirectoryIsNotEmptyException(outputDirectory);
+					}
+					if (appendOutput) {
+						return existingFileNames;
+					} else {
+						throw new OutputDirectoryContainsValidPspiPackageException(outputDirectory);
+					}
+				}
+			} else if (outputDirectory.isFile()) {
+				throw new RuntimeException("Output directory path points to a file!: " + outputDirectory);
+			}
+		}
+		outputDirectory.mkdirs();
+		return null;
+	}
 
 }

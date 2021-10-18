@@ -9,26 +9,26 @@ import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
 
 public class ImageModifyingCopier implements ImageCopier {
-    
-    private FileUtils fileUtils = FileUtils.getInstance();
 
-    private ImageUtils imageUtils = ImageUtils.getInstance();
+	private FileUtils fileUtils = FileUtils.getInstance();
 
-    private final ImageModifier imageModifier;
+	private ImageUtils imageUtils = ImageUtils.getInstance();
 
-    private final float compressionQuality;
+	private final ImageModifier imageModifier;
 
-    public ImageModifyingCopier(ImageModifier imageModifier, float compressionQuality) {
-        this.imageModifier = imageModifier;
-        this.compressionQuality = compressionQuality;
-    }
+	private final float compressionQuality;
 
-    @Override
-    public void copyImage(File sourceFile, File targetFile) throws IOException {
-        fileUtils.assertFileDoesNotExist(targetFile);
-        BufferedImage image = imageUtils.readImage(sourceFile);
-        image = imageModifier.modifyImage(sourceFile, image);
-        imageUtils.saveImageCopyMetaData(image, sourceFile, targetFile, compressionQuality);
-    }
-    
+	public ImageModifyingCopier(ImageModifier imageModifier, float compressionQuality) {
+		this.imageModifier = imageModifier;
+		this.compressionQuality = compressionQuality;
+	}
+
+	@Override
+	public void copyImage(File sourceFile, File targetFile) throws IOException {
+		fileUtils.assertFileDoesNotExist(targetFile);
+		BufferedImage image = imageUtils.readImage(sourceFile);
+		image = imageModifier.modifyImage(sourceFile, image);
+		imageUtils.saveImageCopyMetaData(image, sourceFile, targetFile, compressionQuality);
+	}
+
 }
