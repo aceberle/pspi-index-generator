@@ -3,8 +3,6 @@ package com.eberlecreative.pspiindexgenerator.pspi.directoryprocessing;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -13,23 +11,28 @@ import java.util.regex.Pattern;
 import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 import com.eberlecreative.pspiindexgenerator.pspi.fileprocessing.FileProcessor;
 import com.eberlecreative.pspiindexgenerator.record.RecordField;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepository;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepositoryFactory;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 
 public class FilePathPatternBasedDirectoryProcessor implements DirectoryProcessor {
 
     private final FileUtils fileUtils;
     
-    private EventHandler eventHandler;
+    private final EventHandler eventHandler;
     
     private final Pattern imageFolderPattern;
     
     private final Pattern imageFilePattern;
     
-    public FilePathPatternBasedDirectoryProcessor(FileUtils fileUtils, EventHandler eventHandler, Pattern imageFolderPattern, Pattern imageFilePattern) {
+    private final FieldValueRepositoryFactory fieldValueRepositoryFactory;
+    
+    public FilePathPatternBasedDirectoryProcessor(FileUtils fileUtils, EventHandler eventHandler, Pattern imageFolderPattern, Pattern imageFilePattern, FieldValueRepositoryFactory fieldValueRepositoryFactory) {
         this.fileUtils = fileUtils;
         this.eventHandler = eventHandler;
         this.imageFolderPattern = imageFolderPattern;
         this.imageFilePattern = imageFilePattern;
+        this.fieldValueRepositoryFactory = fieldValueRepositoryFactory;
     }
 
     @Override
@@ -55,7 +58,7 @@ public class FilePathPatternBasedDirectoryProcessor implements DirectoryProcesso
                     } else if (!imageFileMatcher.matches()) {
                         eventHandler.error("Encountered unexpected file name: " + imageFileName);
                     } else {
-                        final Map<String, String> fieldValues = getFromMatchers(imageFileMatcher, imageFolderMatcher);
+                        final FieldValueRepository fieldValues = getFromMatchers(imageFileMatcher, imageFolderMatcher);
                         fileProcessor.processFile(inputDirectory, outputDirectory, imageFolder.getName(), imageFile, fieldValues);
                     }
                 }
@@ -63,20 +66,33 @@ public class FilePathPatternBasedDirectoryProcessor implements DirectoryProcesso
         }
     }
     
-    private static Map<String, String> getFromMatchers(Matcher...matchers) {
-       final Map<String, String> results = new HashMap<>();
-       for(Matcher matcher : matchers) {
-           final Set<String> names = getNamedGroupCandidates(matcher.pattern().pattern());
-           for(String name : names) {
-               try {
-                   results.put(name, matcher.group(name));
-               } catch (IllegalArgumentException e) {
-                   // ignore
-               }
-           }
-       }
-       return results;
-    }
+	private FieldValueRepository getFromMatchers(Matcher... matchers) {
+		final FieldValueRepository results = fieldValueRepositoryFactory.newFieldValueRepository();
+		for (Matcher matcher : matchers) {
+			final Set<String> names = getNamedGroupCandidates(matcher.pattern().pattern());
+			for (String name : names) {
+				final String value = getValue(matcher, name);
+				if (value != null) {
+					final String existingValue = results.get(name);
+					if(existingValue != null) {
+						throw new RuntimeException(String.format("Image path already contains value for key '%s', existing value='%s', new value='%s'", name, existingValue, value));
+					}
+					results.put(name, value);
+				}
+			}
+		}
+		return results;
+	}
+
+	private String getValue(Matcher matcher, String name) {
+		String value = null;
+		try {
+			value = matcher.group(name);
+		} catch (IllegalArgumentException e) {
+			// ignore
+		}
+		return value;
+	}
     
     private static final Pattern NAMED_GROUPS = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
     

@@ -2,7 +2,8 @@ package com.eberlecreative.pspiindexgenerator.outputfilenameresolver;
 
 import java.io.File;
 import java.util.List;
-import java.util.Map;
+
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepository;
 
 public class FieldValueBasedOverridingOutputFileNameResolver implements OutputFileNameResolver {
     
@@ -13,7 +14,7 @@ public class FieldValueBasedOverridingOutputFileNameResolver implements OutputFi
     }
 
     @Override
-    public String resolveOutputFileName(File imageFile, Map<String, String> fieldValues) {
+    public String resolveOutputFileName(File imageFile, FieldValueRepository fieldValues) {
         final StringBuilder newFileNameBuilder = new StringBuilder();
         appenders.forEach(appender -> appender.append(newFileNameBuilder, fieldValues));
         return newFileNameBuilder.toString();

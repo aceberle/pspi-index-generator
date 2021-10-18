@@ -8,11 +8,11 @@ import java.util.Random;
 
 import javax.imageio.ImageIO;
 
+import org.junit.Test;
+
 import com.arakelian.faker.model.Person;
 import com.arakelian.faker.service.RandomData;
 import com.arakelian.faker.service.RandomPerson;
-
-import org.junit.Test;
 
 public class GenerateDataDriver {
 

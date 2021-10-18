@@ -13,6 +13,7 @@ import com.eberlecreative.pspiindexgenerator.outputfilenameresolver.OutputFileNa
 import com.eberlecreative.pspiindexgenerator.pspi.util.IndexRecordFields;
 import com.eberlecreative.pspiindexgenerator.record.RecordField;
 import com.eberlecreative.pspiindexgenerator.record.RecordWriter;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepository;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
 
@@ -45,7 +46,7 @@ public class PspiCopyAndWriteRecordFileProcessor implements FileProcessor {
     }
 
     @Override
-    public void processFile(File inputDirectory, File outputDirectory, String imageFolderName, File imageFile, Map<String, String> fieldValues) throws IOException {
+    public void processFile(File inputDirectory, File outputDirectory, String imageFolderName, File imageFile, FieldValueRepository fieldValues) throws IOException {
         final String outputFileName = outputFileNameResolver.resolveOutputFileName(imageFile, fieldValues);
         final File newImageFile = outputDirectory.toPath().resolve(imageFolderName).resolve(outputFileName).toFile();
         fileUtils.mkdirs(newImageFile);

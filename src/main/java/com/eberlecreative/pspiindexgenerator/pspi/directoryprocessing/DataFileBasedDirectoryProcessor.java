@@ -19,6 +19,7 @@ import com.eberlecreative.pspiindexgenerator.eventhandler.EventHandler;
 import com.eberlecreative.pspiindexgenerator.pspi.fileprocessing.FileProcessor;
 import com.eberlecreative.pspiindexgenerator.pspi.util.IndexRecordFields;
 import com.eberlecreative.pspiindexgenerator.record.RecordField;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepository;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 
 public class DataFileBasedDirectoryProcessor implements DirectoryProcessor {
@@ -52,8 +53,8 @@ public class DataFileBasedDirectoryProcessor implements DirectoryProcessor {
 
     @Override
     public void processDirectory(File inputDirectory, File outputDirectory, Collection<RecordField> recordFields, FileProcessor fileProcessor) throws IOException {
-        final List<Map<String, String>> rawData = dataFileParser.parseDataFile(dataFilePath);
-        final Map<Long, Map<String, String>> dataByImageNumber = getDataByImageNumber(rawData, eventHandler);
+        final List<FieldValueRepository> rawData = dataFileParser.parseDataFile(dataFilePath);
+        final Map<Long, FieldValueRepository> dataByImageNumber = getDataByImageNumber(rawData, eventHandler);
         final Queue<File> files = new LinkedList<>();
         files.addAll(getFiles(inputDirectory));
         while (!files.isEmpty()) {
@@ -71,11 +72,11 @@ public class DataFileBasedDirectoryProcessor implements DirectoryProcessor {
                     eventHandler.error("Encountered unexpected file name \"%s\" while processing file: %s", imageFileName, file);
                 } else {
                     final Long imageNumber = Long.parseLong(imageFileMatcher.group(1));
-                    final Map<String, String> fieldValues = dataByImageNumber.get(imageNumber);
-                    updateNames(fieldValues);
+                    final FieldValueRepository fieldValues = dataByImageNumber.get(imageNumber);
                     if(fieldValues == null) {
                         eventHandler.error("Could not find row data for image number %s while processing image file: %s", imageNumber, file);
                     } else {
+                        updateNames(fieldValues);
                         fileProcessor.processFile(inputDirectory, outputDirectory, IMAGES_DIR_NAME, file, fieldValues);
                     }
                 }
@@ -89,7 +90,7 @@ public class DataFileBasedDirectoryProcessor implements DirectoryProcessor {
 		return Arrays.asList(fileUtils.sort(inputDirectory.listFiles()));
 	}
     
-    private void updateNames(Map<String, String> rowData) {
+    private void updateNames(FieldValueRepository rowData) {
         final String lastName = rowData.get(IndexRecordFields.LAST_NAME);
         final String firstName = rowData.get(IndexRecordFields.FIRST_NAME);
         if(StringUtils.isAnyBlank(lastName, firstName)) {
@@ -113,9 +114,9 @@ public class DataFileBasedDirectoryProcessor implements DirectoryProcessor {
 
     private static final String IMAGE_NUMBER_HEADER = "imageNumber";
 
-    private Map<Long, Map<String, String>> getDataByImageNumber(List<Map<String, String>> rawData, EventHandler eventHandler) {
-        final Map<Long, Map<String, String>> results = new HashMap<>();
-        for(Map<String, String> data : rawData) {
+    private Map<Long, FieldValueRepository> getDataByImageNumber(List<FieldValueRepository> rawData, EventHandler eventHandler) {
+        final Map<Long, FieldValueRepository> results = new HashMap<>();
+        for(FieldValueRepository data : rawData) {
             final String rawImageNumber = data.get(IMAGE_NUMBER_HEADER);
             if(rawImageNumber == null) {
                 eventHandler.error("Unable to locate image number in row information: %s", data);

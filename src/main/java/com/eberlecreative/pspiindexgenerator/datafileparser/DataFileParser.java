@@ -3,23 +3,29 @@ package com.eberlecreative.pspiindexgenerator.datafileparser;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.CaseUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-public class DataFileParser {
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepository;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepositoryFactory;
 
-    public List<Map<String, String>> parseDataFile(File dataFilePath) {
-        final List<Map<String, String>> results = new ArrayList<>();
+public class DataFileParser {
+	
+	private final FieldValueRepositoryFactory fieldValueRepositoryFactory;
+
+	public DataFileParser(FieldValueRepositoryFactory fieldValueRepositoryFactory) {
+		this.fieldValueRepositoryFactory = fieldValueRepositoryFactory;
+	}
+
+	public List<FieldValueRepository> parseDataFile(File dataFilePath) {
+        final List<FieldValueRepository> results = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(dataFilePath);
                 XSSFWorkbook workbook = new XSSFWorkbook (fis);) {
             final XSSFSheet sheet = workbook.getSheetAt(0);
@@ -33,15 +39,14 @@ public class DataFileParser {
             while(headerCellIterator.hasNext()) {
                 final Cell cell = headerCellIterator.next();
                 final String cellValue = cell.getStringCellValue();
-                final String header = canonicalizeHeader(cellValue);
-                if(StringUtils.isBlank(header)) {
+                if(StringUtils.isBlank(cellValue)) {
                     break;
                 }
-                headers.add(header);
+                headers.add(cellValue);
             }
             final DataFormatter objDefaultFormat = new DataFormatter();
             while(rowIterator.hasNext()) {
-                final Map<String, String> rowData = new HashMap<>();
+                final FieldValueRepository rowData = fieldValueRepositoryFactory.newFieldValueRepository();
                 final Row row = rowIterator.next();
                 final Iterator<Cell> cellIterator = row.cellIterator();
                 for(int i = 0; i < headers.size() && cellIterator.hasNext(); i++) {
@@ -63,12 +68,8 @@ public class DataFileParser {
         return results;
     }
 
-    private boolean isAllBlank(Map<String, String> rowData) {
+    private boolean isAllBlank(FieldValueRepository rowData) {
         return StringUtils.isAllBlank(rowData.values().toArray(new String[0]));
-    }
-
-    private String canonicalizeHeader(String value) {
-        return CaseUtils.toCamelCase(value, false, ' ', '_');
     }
 
 }

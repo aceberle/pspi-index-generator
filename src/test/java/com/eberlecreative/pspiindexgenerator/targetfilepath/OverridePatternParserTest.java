@@ -4,20 +4,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.eberlecreative.pspiindexgenerator.outputfilenameresolver.Appender;
 import com.eberlecreative.pspiindexgenerator.outputfilenameresolver.OverridePatternParser;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepository;
+import com.eberlecreative.pspiindexgenerator.util.HashMapFieldValueRepository;
 
 public class OverridePatternParserTest {
 
     private OverridePatternParser testObj;
-    private Map<String, String> fieldValues;
+    private FieldValueRepository fieldValueRepository;
     private StringBuilder builder;
     private List<Appender> appenders;
     private String overridePattern;
@@ -27,15 +27,15 @@ public class OverridePatternParserTest {
     @Before
     public void init() {
         testObj = new OverridePatternParser();
-        fieldValues = new HashMap<>();
-        fieldValues.put("firstName", "John");
-        fieldValues.put("lastName", "Doe");
-        fieldValues.put("id", "000123");
+        fieldValueRepository = new HashMapFieldValueRepository();
+        fieldValueRepository.put("firstName", "John");
+        fieldValueRepository.put("lastName", "Doe");
+        fieldValueRepository.put("id", "000123");
         builder = new StringBuilder();
         thrownException = null;
     }
-    
-    @Test
+
+	@Test
     public void specifyReplacementPatternWorks() {
         givenOverridePattern("<firstName>_<lastName>_<id>.jpg");
         whenParseOverridePatternIsExecuted();
@@ -73,7 +73,7 @@ public class OverridePatternParserTest {
     private void whenParseOverridePatternIsExecuted() {
         try {
             appenders = testObj.parseOverridePattern(overridePattern);
-            appenders.forEach(appender -> appender.append(builder, fieldValues));
+            appenders.forEach(appender -> appender.append(builder, fieldValueRepository));
             actualResult = builder.toString();
         } catch(Exception e) {
             thrownException = e;

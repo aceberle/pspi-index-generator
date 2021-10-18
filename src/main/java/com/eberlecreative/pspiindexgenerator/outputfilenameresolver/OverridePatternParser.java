@@ -7,9 +7,9 @@ import java.util.regex.Pattern;
 
 public class OverridePatternParser {
 
-    private static final Pattern TOKENS = Pattern.compile("<([a-zA-Z][a-zA-Z0-9]*)>");
-    
-    public List<Appender> parseOverridePattern(String overridePattern) {
+    private static final Pattern TOKENS = Pattern.compile("<([^>]*)>");
+
+	public List<Appender> parseOverridePattern(String overridePattern) {
         List<Appender> results = new ArrayList<>();
         final Matcher matcher = TOKENS.matcher(overridePattern);
         int lastMatchEndIdx = 0;

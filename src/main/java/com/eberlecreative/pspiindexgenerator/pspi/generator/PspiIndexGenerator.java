@@ -32,6 +32,9 @@ import com.eberlecreative.pspiindexgenerator.record.RecordField;
 import com.eberlecreative.pspiindexgenerator.record.RecordWriter;
 import com.eberlecreative.pspiindexgenerator.record.RecordWriterFactory;
 import com.eberlecreative.pspiindexgenerator.record.TabDelimitedRecordWriterFactory;
+import com.eberlecreative.pspiindexgenerator.util.CanonicalizingFieldValueRepositoryFactory;
+import com.eberlecreative.pspiindexgenerator.util.DefaultFieldNameCanonicalizer;
+import com.eberlecreative.pspiindexgenerator.util.FieldValueRepositoryFactory;
 import com.eberlecreative.pspiindexgenerator.util.FileUtils;
 import com.eberlecreative.pspiindexgenerator.util.ImageUtils;
 import com.eberlecreative.pspiindexgenerator.util.ResourceUtils;
@@ -53,6 +56,8 @@ public class PspiIndexGenerator {
     private ResourceUtils resourceUtils = ResourceUtils.getInstance();
 
     private Logger logger = new StreamLogger();
+    
+    private FieldValueRepositoryFactory fieldValueRepositoryFactory = new CanonicalizingFieldValueRepositoryFactory(new DefaultFieldNameCanonicalizer());;
 
     private EventHandlerFactory eventHandlerFactory = new DefaultEventHandlerFactory();
 
@@ -220,9 +225,9 @@ public class PspiIndexGenerator {
 
     private DirectoryProcessor getDirectoryProcessingStrategy(EventHandler eventHandler) {
         if(dataFilePath == null) {
-            return new FilePathPatternBasedDirectoryProcessor(fileUtils, eventHandler, imageFolderPattern, imageFilePattern);
+            return new FilePathPatternBasedDirectoryProcessor(fileUtils, eventHandler, imageFolderPattern, imageFilePattern, fieldValueRepositoryFactory);
         }
-        return new DataFileBasedDirectoryProcessor(fileUtils, eventHandler, new DataFileParser(), dataFilePath);
+        return new DataFileBasedDirectoryProcessor(fileUtils, eventHandler, new DataFileParser(fieldValueRepositoryFactory), dataFilePath);
     }
 
     private Set<String> validateAndInitOutputDirectory(File outputDirectory) {

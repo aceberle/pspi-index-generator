@@ -324,6 +324,22 @@ public class PspiIndexGeneratorCLIIntegrationTest {
         thenExceptionIsThrown(FileAssertionException.class, String.format("Did not expect file to exist: %s", new File(outputDirectory, "images/001.jpg").getAbsoluteFile()));
     }
     
+    @Test
+    public void specifyThatUsingOutputFileFormatAndInputDataAreCanonicalized() {
+        givenCleanDirectoryName("volume18");
+        givenTestImage("001.jpg", PspiImageSize.SMALL);
+        givenTestImage("002.jpg", PspiImageSize.SMALL);
+        givenTestImage("003.jpg", PspiImageSize.SMALL);
+        givenExcelFileWithColumnHeaders("Image Number", "First Name", "last_Name", "ID", "Grade", "Home Room", "First_Last", "Last_First");
+        givenExcelFileRow("1", "Stephanie", "Helsabeck", "100304", "5", "HR-5th-1: Caputa");
+        givenExcelFileRow("2", "", "", "100269", "4", "HR-5th-2: Reid", "Beatriz Gurgel");
+        givenExcelFileRow("3", "", "", "100102", "3", "HR-5th-2: Reid", "", "Bynum Meredith");
+        givenOutputFileFormat("<Last-Name>_<first name>_<iD>.jpg");
+        whenTestDataIsGeneratedAndMainIsExecuted();
+        thenNoExceptionIsThrown();
+        thenActualIndexFileContentsMatchExpected();
+    }
+    
     private void givenStrictDisabled() {
         this.disableStrict = true;
     }
