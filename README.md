@@ -16,7 +16,7 @@ The machine that will run this software requires [Java version 11 or higher](htt
 You can run the jar without any commands if you want to start up the Graphic user interface (GUI), like this:
 
 ```
-/path/to/java -jar pspi-index-generator-1.2.0.jar
+/path/to/java -jar pspi-index-generator-1.3.0.jar
 ```
 
 Here is what it looks like:
@@ -28,7 +28,7 @@ Here is what it looks like:
 Otherwise you can run the command with "-h" to view the usage menu, like this:
 
 ```
-/path/to/java -jar pspi-index-generator-1.2.0.jar -h
+/path/to/java -jar pspi-index-generator-1.3.0.jar -h
 ```
 
 And here is the expected output:
